@@ -9,6 +9,32 @@
 ; Descripción: Proyecto 1, Reloj alarma con multiples modos
 ; ============================================
 
-start:
-    inc r16
-    rjmp start
+.include "m328Pdef.inc"
+
+.cseg
+.org 0x0000
+JMP START
+
+START:
+	; =============================================
+	; Configuración de la pila
+	; =============================================
+	LDI R16, LOW(RAMEND)
+	OUT SPL, R16
+	LDI R16, HIGH(RAMEND)
+	OUT SPH, R16
+
+	; =============================================
+	; Configuración del MCU
+	; =============================================
+
+	SETUP:
+
+
+
+
+	; =============================================
+	; Bucle Principal
+	; =============================================
+
+	MAIN:
