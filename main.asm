@@ -104,7 +104,7 @@ START:
 		LDI R20, 0x00				; Inicializar contador 7 segmentos unidades
 		LDI R21, 0x00				; Inicializar contador de contador
 		LDI R22, 0x00				; Inicializar contador 7 segmentos decenas
-		LDI R24, 0x00				; Inicializar alternador
+		LDI R18, 0x00				; Inicializar alternador
 
 		SEI							; Habilitar interrupciones
 
@@ -119,23 +119,46 @@ START:
 		CPI R21, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 
-		CPI R24, 0						; si es 0 alternar a 1 y mostrar display 0
+		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 		BREQ SHW_DISP_0
 
-		CPI R24, 1						; si es 1 alternar a 2 y mostrar display 1
+		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
 		BREQ SHW_DISP_1
 
-		CPI R24, 2						; si es 2 alternar a 3 y mostrar display 2
+		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
 		BREQ SHW_DISP_2
 
-		CPI R24, 3						; si es 3 alternar a 0 y mostrar display 3
+		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
 		BREQ SHW_DISP_3
 
-
-
-
-
 		RJMP LOOP_TIME
+
+		RST_CCNT:
+			LDI R20, 0x00				; Resetear contador de contador
+
+			CPI R21, 0x09				; Verificar si unidades ya es 9
+			BREQ RST_CNT_U_S			; Si ya es 9, resetear counter, sino saltar 
+
+			INC R21						; Incrementar contador unidades egundos
+
+			RJMP MAIN
+
+			RST_CNT_U_S:
+				LDI R21, 0x00			; Reiniciar contador unidades segundos
+
+				CPI R22, 0x05			; Verificar decenas si ya es 6
+				BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
+
+				INC R22					; Aumentar contador decenas segundos
+
+				RJMP MAIN
+
+				RST_CNT_D:
+					LDI R21, 0x00			; Reiniciar contador unidades segundos
+					LDI R22, 0x00			; Reiniciar contador decenas segundos 
+
+					CPI R23, ;aquimequede
+					RJMP MAIN
 
 	; =============================================
 	; Bucle Modo Fecha
@@ -154,5 +177,5 @@ CNT_OVF:
     LDI R16, 178	
     OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
 
-	INC R21
+	INC R20
 	RETI
