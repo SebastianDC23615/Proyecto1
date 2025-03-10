@@ -22,8 +22,23 @@
   <FILE>proyecto1.lss</FILE>
  </OUTPUT_FILES>
  <LABELS>
-  <START><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>18</LINE></START>
-  <SETUP><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>31</LINE></SETUP>
-  <MAIN><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>55</LINE></MAIN>
+  <START><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>21</LINE></START>
+  <CNT_OVF><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>283</LINE></CNT_OVF>
+  <SETUP><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>34</LINE></SETUP>
+  <TRADUCTOR><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>93</LINE></TRADUCTOR>
+  <MAIN><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>120</LINE></MAIN>
+  <RST_CCNT><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>129</LINE></RST_CCNT>
+  <alternador><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>183</LINE></alternador>
+  <RST_CNT_U_S><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>139</LINE></RST_CNT_U_S>
+  <RST_CNT_D_S><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>149</LINE></RST_CNT_D_S>
+  <RST_CNT_U_M><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>160</LINE></RST_CNT_U_M>
+  <RST_CNT_D_M><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>172</LINE></RST_CNT_D_M>
+  <SHW_DISP_0><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>187</LINE></SHW_DISP_0>
+  <nextdisp1><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>206</LINE></nextdisp1>
+  <SHW_DISP_1><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>210</LINE></SHW_DISP_1>
+  <nextdisp2><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>229</LINE></nextdisp2>
+  <SHW_DISP_2><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>233</LINE></SHW_DISP_2>
+  <nextdisp3><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>252</LINE></nextdisp3>
+  <SHW_DISP_3><FILE>C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm</FILE><LINE>257</LINE></SHW_DISP_3>
  </LABELS>
 </ASSEMBLER_INFO>

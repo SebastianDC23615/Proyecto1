@@ -91,8 +91,8 @@ START:
 		LDI ZH, HIGH(TRADUCTOR << 1)
 	
 		TRADUCTOR: .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x67, 0x77, 0x7C, 0x58, 0x5E, 0x79, 0x71
-		LPM R23, Z					; Cargar pointer a registro
-		OUT PORTD, R23				; Mostrar valor de pointer a PORTD
+		LPM R25, Z					; Cargar pointer a registro
+		OUT PORTD, R25				; Mostrar valor de pointer a PORTD
 	
 		; =========================================
 		; Configuraciones Extra
@@ -101,9 +101,12 @@ START:
 		LDI R17, 0x00				; Inicializar counter y mostrar en salida
 		OUT PORTC, R17
 
-		LDI R20, 0x00				; Inicializar contador 7 segmentos unidades
-		LDI R21, 0x00				; Inicializar contador de contador
-		LDI R22, 0x00				; Inicializar contador 7 segmentos decenas
+		LDI R20, 0x00				; Inicializar contador de contador
+		LDI R21, 0x00				; Inicializar contador unidades minutos
+		LDI R22, 0x00				; Inicializar contador decenas minutos
+		LDI R23, 0x00				; Inicializar contador unidades horas
+		LDI R24, 0x00				; Inicializar contador decenas horas
+
 		LDI R18, 0x00				; Inicializar alternador
 
 		SEI							; Habilitar interrupciones
@@ -118,20 +121,10 @@ START:
 		
 		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
-
-		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
-		BREQ SHW_DISP_0
-
-		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
-		BREQ SHW_DISP_1
-
-		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
-		BREQ SHW_DISP_2
-
-		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
-		BREQ SHW_DISP_3
-
-		RJMP MAIN
+		RJMP alternador
+		; =========================================
+		; Condicionales para reloj 24 hrs
+		; =========================================
 
 		RST_CCNT:
 			LDI R20, 0x00				; Resetear contador de contador
@@ -184,6 +177,104 @@ START:
 
 							RJMP MAIN
 
+		; ==================================
+		; Alternadores de display
+		; ==================================
+alternador:
+		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+		BREQ SHW_DISP_0
+		RJMP nextdisp1
+		SHW_DISP_0:
+			LDI R18, 0x01				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			CBI PORTB, 3				; Deshabilitar display 3
+			CBI PORTB, 2				; Deshabilitar display 2
+			CBI PORTB, 1				; Deshabilitar display 1
+			SBI PORTB, 0				; Habilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R25, Z					; Cargar pointer en registro
+			OUT PORTD, R25				; Mostrar registro en puerto D
+
+			RJMP MAIN
+nextdisp1:
+		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+		BREQ SHW_DISP_1
+		RJMP nextdisp2
+		SHW_DISP_1:
+			LDI R18, 0x02				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			CBI PORTB, 3				; Deshabilitar display 3
+			CBI PORTB, 2				; Deshabilitar display 2
+			SBI PORTB, 1				; Habilitar display 1
+			CBI PORTB, 0				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			ADC ZL, R22					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R25, Z					; Cargar pointer en registro
+			OUT PORTD, R25				; Mostrar registro en puerto D
+
+			RJMP MAIN
+nextdisp2:
+		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+		BREQ SHW_DISP_2
+		RJMP nextdisp3
+		SHW_DISP_2:
+			LDI R18, 0x03				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			CBI PORTB, 3				; Deshabilitar display 3
+			SBI PORTB, 2				; Habilitar display 2
+			CBI PORTB, 1				; Deshabilitar display 1
+			CBI PORTB, 0				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R25, Z					; Cargar pointer en registro
+			OUT PORTD, R25				; Mostrar registro en puerto D
+
+			RJMP MAIN
+nextdisp3:
+		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+		BREQ SHW_DISP_3
+		RJMP MAIN
+
+		SHW_DISP_3:
+			LDI R18, 0x00				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			SBI PORTB, 3				; Habilitar display 3
+			CBI PORTB, 2				; Deshabilitar display 2
+			CBI PORTB, 1				; Deshabilitar display 1
+			CBI PORTB, 0				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			ADC ZL, R24					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R25, Z					; Cargar pointer en registro
+			OUT PORTD, R25				; Mostrar registro en puerto D
+
+			RJMP MAIN
+
+		RJMP MAIN
 
 ; =============================================
 ; Contador de overflow para 7 segmentos
