@@ -111,12 +111,12 @@ START:
 
 
 	; =============================================
-	; Bucle Modo Hora
+	; Bucle Principal
 	; =============================================
 
-	LOOP_TIME:
+	MAIN:
 		
-		CPI R21, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
+		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 
 		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
@@ -131,7 +131,7 @@ START:
 		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
 		BREQ SHW_DISP_3
 
-		RJMP LOOP_TIME
+		RJMP MAIN
 
 		RST_CCNT:
 			LDI R20, 0x00				; Resetear contador de contador
@@ -139,33 +139,50 @@ START:
 			CPI R21, 0x09				; Verificar si unidades ya es 9
 			BREQ RST_CNT_U_S			; Si ya es 9, resetear counter, sino saltar 
 
-			INC R21						; Incrementar contador unidades egundos
+			INC R21						; Incrementar contador unidades segundos
 
 			RJMP MAIN
 
 			RST_CNT_U_S:
 				LDI R21, 0x00			; Reiniciar contador unidades segundos
 
-				CPI R22, 0x05			; Verificar decenas si ya es 6
+				CPI R22, 0x05			; Verificar decenas si ya es 5
 				BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
 
 				INC R22					; Aumentar contador decenas segundos
 
 				RJMP MAIN
 
-				RST_CNT_D:
+				RST_CNT_D_S:
 					LDI R21, 0x00			; Reiniciar contador unidades segundos
 					LDI R22, 0x00			; Reiniciar contador decenas segundos 
 
-					CPI R23, ;aquimequede
+					CPI R23, 0x09			; Verificar si unidades minutos ya es 9
+					BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
+
+					INC R23					; Aumentar unidades minutos
+
 					RJMP MAIN
 
-	; =============================================
-	; Bucle Modo Fecha
-	; =============================================
+					RST_CNT_U_M:
+						LDI R21, 0x00			; Reiniciar contador unidades segundos
+						LDI R22, 0x00			; Reiniciar contador decenas segundos
+						LDI R23, 0x00			; Reiniciar contador unidades minutos
 
-	LOOP_DATE:
-		RJMP LOOP_DATE
+						CPI R24, 0x02			; Verificar si decenas minutos ya es 2
+						BREQ RST_CNT_D_M		; Si ya es 2, resetear counter, sino saltar
+
+						INC R24					; Aumentar decenas minutos
+
+						RJMP MAIN
+
+						RST_CNT_D_M:
+							LDI R21, 0x00			; Reiniciar contador unidades segundos
+							LDI R22, 0x00			; Reiniciar contador decenas segundos
+							LDI R23, 0x00			; Reiniciar contador unidades minutos
+							LDI R24, 0x00			; Reiniciar contador decenas minutos
+
+							RJMP MAIN
 
 
 ; =============================================
