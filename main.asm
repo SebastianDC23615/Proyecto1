@@ -91,21 +91,22 @@ START:
 		LDI ZH, HIGH(TRADUCTOR << 1)
 	
 		TRADUCTOR: .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x67, 0x77, 0x7C, 0x58, 0x5E, 0x79, 0x71
-		LPM R25, Z					; Cargar pointer a registro
-		OUT PORTD, R25				; Mostrar valor de pointer a PORTD
+		LPM R17, Z					; Cargar pointer a registro
+		OUT PORTD, R17				; Mostrar valor de pointer a PORTD
 	
 		; =========================================
 		; Configuraciones Extra
 		; =========================================
-
-		LDI R17, 0x00				; Inicializar counter y mostrar en salida
-		OUT PORTC, R17
 
 		LDI R20, 0x00				; Inicializar contador de contador
 		LDI R21, 0x00				; Inicializar contador unidades minutos
 		LDI R22, 0x00				; Inicializar contador decenas minutos
 		LDI R23, 0x00				; Inicializar contador unidades horas
 		LDI R24, 0x00				; Inicializar contador decenas horas
+		LDI R25, 0x01				; Inicializar contador unidades dias
+		LDI R26, 0x00				; Inicializar contador decenas dias
+		LDI R27, 0x01				; Inicializar contador unidades mes
+		LDI R28, 0x00				; Inicializar contador decenas dias
 
 		LDI R18, 0x00				; Inicializar alternador
 
@@ -119,9 +120,10 @@ START:
 
 	MAIN:
 		
-		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
+		CPI R20, 1						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 		RJMP alternador
+
 		; =========================================
 		; Condicionales para reloj 24 hrs
 		; =========================================
@@ -150,6 +152,9 @@ START:
 					LDI R21, 0x00			; Reiniciar contador unidades segundos
 					LDI R22, 0x00			; Reiniciar contador decenas segundos 
 
+					CPI R23, 0x03			; Verificar si unidades minutos ya es 3
+					BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
+					continue1:
 					CPI R23, 0x09			; Verificar si unidades minutos ya es 9
 					BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
 
@@ -160,22 +165,60 @@ START:
 					RST_CNT_U_M:
 						LDI R21, 0x00			; Reiniciar contador unidades segundos
 						LDI R22, 0x00			; Reiniciar contador decenas segundos
-						LDI R23, 0x00			; Reiniciar contador unidades minutos
+						LDI R23, 0x00			; Reiniciar contador unidades minutos				
 
-						CPI R24, 0x02			; Verificar si decenas minutos ya es 2
-						BREQ RST_CNT_D_M		; Si ya es 2, resetear counter, sino saltar
-
-						INC R24					; Aumentar decenas minutos
+						INC R24					; Incrementar contador decenas minutos
 
 						RJMP MAIN
 
-						RST_CNT_D_M:
+					RST_CNT_D_M:
+
+						CPI R24, 0x02			; Verificar si ya son 24 horas
+						BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
+						RJMP continue1			
+
+						RST_CNT_M:
 							LDI R21, 0x00			; Reiniciar contador unidades segundos
 							LDI R22, 0x00			; Reiniciar contador decenas segundos
 							LDI R23, 0x00			; Reiniciar contador unidades minutos
 							LDI R24, 0x00			; Reiniciar contador decenas minutos
 
-							RJMP MAIN
+							RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
+		; ==================================
+		; Condicionales Fecha
+		; ==================================
+
+		COMP_DATE:
+			;-----ENERO-----
+			CPI R27, 0x01				; Verificar si es 1
+			BREQ VER_ENERO				; Si es enero/, verificar dias, sino saltar
+			RJMP feberero
+
+
+			febrero:
+			CPI R27, 0x02				; Verificar si es febrero
+
+		LIMIT_MONTH:
+			CPI R27, 0x02				; Si unidades mes es 2
+			BREQ LIM_MON_D				; Si es, verificar decena, sino, saltar
+			
+			INC R27						; Aumentar mes
+
+			LIM_MON_D:
+				CPI R28, 0x01			; Si decenas mes es 1
+				BREQ RST_GLOBAL			; Saltar a reiniciar todo, sino, saltar
+				RJMP MAIN
+
+				RST_GLOBAL:
+					LDI R21, 0x00			; Reiniciar contadores segundos y minutos
+					LDI R22, 0x00			;
+					LDI R23, 0x00			;
+					LDI R24, 0x00			;
+					LDI R25, 0x01			; Reiniciar contadores mes y dia
+					LDI R26, 0x00			;
+					LDI R27, 0x01			;
+					LDI R28, 0x00			;
+					RJMP MAIN
 
 		; ==================================
 		; Alternadores de display
@@ -189,18 +232,18 @@ alternador:
 			LDI R16, 0x00
 			OUT PORTD, R16				; Eliminar ghost de PORTD
 
-			CBI PORTB, 3				; Deshabilitar display 3
-			CBI PORTB, 2				; Deshabilitar display 2
-			CBI PORTB, 1				; Deshabilitar display 1
-			SBI PORTB, 0				; Habilitar display 0
+			SBI PORTB, 0				; Deshabilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			CBI PORTB, 3				; Habilitar display 0
 
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-			LPM R25, Z					; Cargar pointer en registro
-			OUT PORTD, R25				; Mostrar registro en puerto D
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
 nextdisp1:
@@ -212,18 +255,18 @@ nextdisp1:
 			LDI R16, 0x00
 			OUT PORTD, R16				; Eliminar ghost de PORTD
 
-			CBI PORTB, 3				; Deshabilitar display 3
-			CBI PORTB, 2				; Deshabilitar display 2
-			SBI PORTB, 1				; Habilitar display 1
-			CBI PORTB, 0				; Deshabilitar display 0
+			SBI PORTB, 0				; Deshabilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			CBI PORTB, 2				; Habilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
 
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
 			ADC ZL, R22					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-			LPM R25, Z					; Cargar pointer en registro
-			OUT PORTD, R25				; Mostrar registro en puerto D
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
 nextdisp2:
@@ -235,18 +278,18 @@ nextdisp2:
 			LDI R16, 0x00
 			OUT PORTD, R16				; Eliminar ghost de PORTD
 
-			CBI PORTB, 3				; Deshabilitar display 3
-			SBI PORTB, 2				; Habilitar display 2
-			CBI PORTB, 1				; Deshabilitar display 1
-			CBI PORTB, 0				; Deshabilitar display 0
+			SBI PORTB, 0				; Deshabilitar display 3
+			CBI PORTB, 1				; Habilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
 
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
 			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-			LPM R25, Z					; Cargar pointer en registro
-			OUT PORTD, R25				; Mostrar registro en puerto D
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
 nextdisp3:
@@ -259,18 +302,18 @@ nextdisp3:
 			LDI R16, 0x00
 			OUT PORTD, R16				; Eliminar ghost de PORTD
 
-			SBI PORTB, 3				; Habilitar display 3
-			CBI PORTB, 2				; Deshabilitar display 2
-			CBI PORTB, 1				; Deshabilitar display 1
-			CBI PORTB, 0				; Deshabilitar display 0
+			CBI PORTB, 0				; Habilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
 
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
 			ADC ZL, R24					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-			LPM R25, Z					; Cargar pointer en registro
-			OUT PORTD, R25				; Mostrar registro en puerto D
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
 

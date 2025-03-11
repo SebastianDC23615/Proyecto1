@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm Mon Mar 10 16:42:19 2025
+AVRASM ver. 2.2.8  C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm Mon Mar 10 18:09:34 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1047,7 +1047,7 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 000000 940c 0022                 JMP START
                                  
                                  .org 0x0020		; Vector de interrupción para overflow
-000020 940c 00c2                 JMP CNT_OVF
+000020 940c 00c3                 JMP CNT_OVF
                                  
                                  START:
                                  	; =============================================
@@ -1129,25 +1129,22 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 000050 7c77
 000051 5e58
 000052 7179                      		TRADUCTOR: .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x67, 0x77, 0x7C, 0x58, 0x5E, 0x79, 0x71
-000053 9194                      		LPM R25, Z					; Cargar pointer a registro
-000054 b99b                      		OUT PORTD, R25				; Mostrar valor de pointer a PORTD
+000053 9114                      		LPM R17, Z					; Cargar pointer a registro
+000054 b91b                      		OUT PORTD, R17				; Mostrar valor de pointer a PORTD
                                  	
                                  		; =========================================
                                  		; Configuraciones Extra
                                  		; =========================================
                                  
-000055 e010                      		LDI R17, 0x00				; Inicializar counter y mostrar en salida
-000056 b918                      		OUT PORTC, R17
+000055 e040                      		LDI R20, 0x00				; Inicializar contador de contador
+000056 e050                      		LDI R21, 0x00				; Inicializar contador unidades minutos
+000057 e060                      		LDI R22, 0x00				; Inicializar contador decenas minutos
+000058 e070                      		LDI R23, 0x00				; Inicializar contador unidades horas
+000059 e080                      		LDI R24, 0x00				; Inicializar contador decenas horas
                                  
-000057 e040                      		LDI R20, 0x00				; Inicializar contador de contador
-000058 e050                      		LDI R21, 0x00				; Inicializar contador unidades minutos
-000059 e060                      		LDI R22, 0x00				; Inicializar contador decenas minutos
-00005a e070                      		LDI R23, 0x00				; Inicializar contador unidades horas
-00005b e080                      		LDI R24, 0x00				; Inicializar contador decenas horas
+00005a e020                      		LDI R18, 0x00				; Inicializar alternador
                                  
-00005c e020                      		LDI R18, 0x00				; Inicializar alternador
-                                 
-00005d 9478                      		SEI							; Habilitar interrupciones
+00005b 9478                      		SEI							; Habilitar interrupciones
                                  
                                  
                                  
@@ -1157,173 +1154,179 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
                                  
                                  	MAIN:
                                  		
-00005e 3342                      		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
-00005f f009                      		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
-000060 c01c                      		RJMP alternador
+00005c 3041                      		CPI R20, 1						; Verificar si ya se completaron 50 vueltas (1 segundo)
+00005d f009                      		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
+00005e c01f                      		RJMP alternador
                                  		; =========================================
                                  		; Condicionales para reloj 24 hrs
                                  		; =========================================
                                  
                                  		RST_CCNT:
-000061 e040                      			LDI R20, 0x00				; Resetear contador de contador
+00005f e040                      			LDI R20, 0x00				; Resetear contador de contador
                                  
-000062 3059                      			CPI R21, 0x09				; Verificar si unidades ya es 9
-000063 f011                      			BREQ RST_CNT_U_S			; Si ya es 9, resetear counter, sino saltar 
+000060 3059                      			CPI R21, 0x09				; Verificar si unidades ya es 9
+000061 f011                      			BREQ RST_CNT_U_S			; Si ya es 9, resetear counter, sino saltar 
                                  
-000064 9553                      			INC R21						; Incrementar contador unidades segundos
+000062 9553                      			INC R21						; Incrementar contador unidades segundos
                                  
-000065 cff8                      			RJMP MAIN
+000063 cff8                      			RJMP MAIN
                                  
                                  			RST_CNT_U_S:
-000066 e050                      				LDI R21, 0x00			; Reiniciar contador unidades segundos
+000064 e050                      				LDI R21, 0x00			; Reiniciar contador unidades segundos
                                  
-000067 3065                      				CPI R22, 0x05			; Verificar decenas si ya es 5
-000068 f011                      				BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
+000065 3065                      				CPI R22, 0x05			; Verificar decenas si ya es 5
+000066 f011                      				BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
                                  
-000069 9563                      				INC R22					; Aumentar contador decenas segundos
+000067 9563                      				INC R22					; Aumentar contador decenas segundos
                                  
-00006a cff3                      				RJMP MAIN
+000068 cff3                      				RJMP MAIN
                                  
                                  				RST_CNT_D_S:
-00006b e050                      					LDI R21, 0x00			; Reiniciar contador unidades segundos
-00006c e060                      					LDI R22, 0x00			; Reiniciar contador decenas segundos 
+000069 e050                      					LDI R21, 0x00			; Reiniciar contador unidades segundos
+00006a e060                      					LDI R22, 0x00			; Reiniciar contador decenas segundos 
                                  
+00006b 3073                      					CPI R23, 0x03			; Verificar si unidades minutos ya es 3
+00006c f049                      					BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
+                                 					continue1:
 00006d 3079                      					CPI R23, 0x09			; Verificar si unidades minutos ya es 9
 00006e f011                      					BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
                                  
 00006f 9573                      					INC R23					; Aumentar unidades minutos
                                  
-000070 cfed                      					RJMP MAIN
+000070 cfeb                      					RJMP MAIN
                                  
                                  					RST_CNT_U_M:
 000071 e050                      						LDI R21, 0x00			; Reiniciar contador unidades segundos
 000072 e060                      						LDI R22, 0x00			; Reiniciar contador decenas segundos
-000073 e070                      						LDI R23, 0x00			; Reiniciar contador unidades minutos
+000073 e070                      						LDI R23, 0x00			; Reiniciar contador unidades minutos				
                                  
-000074 3082                      						CPI R24, 0x02			; Verificar si decenas minutos ya es 2
-000075 f011                      						BREQ RST_CNT_D_M		; Si ya es 2, resetear counter, sino saltar
+000074 9583                      						INC R24					; Incrementar contador decenas minutos
                                  
-000076 9583                      						INC R24					; Aumentar decenas minutos
+000075 cfe6                      						RJMP MAIN
                                  
-000077 cfe6                      						RJMP MAIN
+                                 					RST_CNT_D_M:
                                  
-                                 						RST_CNT_D_M:
-000078 e050                      							LDI R21, 0x00			; Reiniciar contador unidades segundos
-000079 e060                      							LDI R22, 0x00			; Reiniciar contador decenas segundos
-00007a e070                      							LDI R23, 0x00			; Reiniciar contador unidades minutos
-00007b e080                      							LDI R24, 0x00			; Reiniciar contador decenas minutos
+000076 3082                      						CPI R24, 0x02			; Verificar si ya son 24 horas
+000077 f009                      						BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
+000078 cff4                      						RJMP continue1			
                                  
-00007c cfe1                      							RJMP MAIN
+                                 						RST_CNT_M:
+000079 e050                      							LDI R21, 0x00			; Reiniciar contador unidades segundos
+00007a e060                      							LDI R22, 0x00			; Reiniciar contador decenas segundos
+00007b e070                      							LDI R23, 0x00			; Reiniciar contador unidades minutos
+00007c e080                      							LDI R24, 0x00			; Reiniciar contador decenas minutos
+                                 
+00007d cfde                      							RJMP MAIN
                                  
                                  		; ==================================
                                  		; Alternadores de display
                                  		; ==================================
                                  alternador:
-00007d 3020                      		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
-00007e f009                      		BREQ SHW_DISP_0
-00007f c00e                      		RJMP nextdisp1
+00007e 3020                      		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+00007f f009                      		BREQ SHW_DISP_0
+000080 c00e                      		RJMP nextdisp1
                                  		SHW_DISP_0:
-000080 e021                      			LDI R18, 0x01				; Alternar
-000081 e000                      			LDI R16, 0x00
-000082 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+000081 e021                      			LDI R18, 0x01				; Alternar
+000082 e000                      			LDI R16, 0x00
+000083 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-000083 982b                      			CBI PORTB, 3				; Deshabilitar display 3
-000084 982a                      			CBI PORTB, 2				; Deshabilitar display 2
-000085 9829                      			CBI PORTB, 1				; Deshabilitar display 1
-000086 9a28                      			SBI PORTB, 0				; Habilitar display 0
+000084 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+000085 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+000086 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+000087 982b                      			CBI PORTB, 3				; Habilitar display 0
                                  
-000087 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-000088 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+000088 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+000089 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-000089 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-00008a 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-00008b 9194                      			LPM R25, Z					; Cargar pointer en registro
-00008c b99b                      			OUT PORTD, R25				; Mostrar registro en puerto D
+00008a 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+00008b 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+00008c 9114                      			LPM R17, Z					; Cargar pointer en registro
+00008d b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-00008d cfd0                      			RJMP MAIN
+00008e cfcd                      			RJMP MAIN
                                  nextdisp1:
-00008e 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
-00008f f009                      		BREQ SHW_DISP_1
-000090 c00e                      		RJMP nextdisp2
+00008f 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+000090 f009                      		BREQ SHW_DISP_1
+000091 c00e                      		RJMP nextdisp2
                                  		SHW_DISP_1:
-000091 e022                      			LDI R18, 0x02				; Alternar
-000092 e000                      			LDI R16, 0x00
-000093 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+000092 e022                      			LDI R18, 0x02				; Alternar
+000093 e000                      			LDI R16, 0x00
+000094 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-000094 982b                      			CBI PORTB, 3				; Deshabilitar display 3
-000095 982a                      			CBI PORTB, 2				; Deshabilitar display 2
-000096 9a29                      			SBI PORTB, 1				; Habilitar display 1
-000097 9828                      			CBI PORTB, 0				; Deshabilitar display 0
+000095 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+000096 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+000097 982a                      			CBI PORTB, 2				; Habilitar display 1
+000098 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-000098 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-000099 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+000099 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+00009a e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-00009a 1fe6                      			ADC ZL, R22					; Sumar el valor de unidades segundos a ZL (parte baja)
-00009b 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-00009c 9194                      			LPM R25, Z					; Cargar pointer en registro
-00009d b99b                      			OUT PORTD, R25				; Mostrar registro en puerto D
+00009b 1fe6                      			ADC ZL, R22					; Sumar el valor de unidades segundos a ZL (parte baja)
+00009c 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+00009d 9114                      			LPM R17, Z					; Cargar pointer en registro
+00009e b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-00009e cfbf                      			RJMP MAIN
+00009f cfbc                      			RJMP MAIN
                                  nextdisp2:
-00009f 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
-0000a0 f009                      		BREQ SHW_DISP_2
-0000a1 c00e                      		RJMP nextdisp3
+0000a0 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+0000a1 f009                      		BREQ SHW_DISP_2
+0000a2 c00e                      		RJMP nextdisp3
                                  		SHW_DISP_2:
-0000a2 e023                      			LDI R18, 0x03				; Alternar
-0000a3 e000                      			LDI R16, 0x00
-0000a4 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0000a3 e023                      			LDI R18, 0x03				; Alternar
+0000a4 e000                      			LDI R16, 0x00
+0000a5 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0000a5 982b                      			CBI PORTB, 3				; Deshabilitar display 3
-0000a6 9a2a                      			SBI PORTB, 2				; Habilitar display 2
-0000a7 9829                      			CBI PORTB, 1				; Deshabilitar display 1
-0000a8 9828                      			CBI PORTB, 0				; Deshabilitar display 0
+0000a6 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+0000a7 9829                      			CBI PORTB, 1				; Habilitar display 2
+0000a8 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0000a9 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0000a9 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0000aa e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0000aa e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0000ab e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0000ab 1fe7                      			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
-0000ac 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0000ad 9194                      			LPM R25, Z					; Cargar pointer en registro
-0000ae b99b                      			OUT PORTD, R25				; Mostrar registro en puerto D
+0000ac 1fe7                      			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
+0000ad 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0000ae 9114                      			LPM R17, Z					; Cargar pointer en registro
+0000af b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0000af cfae                      			RJMP MAIN
+0000b0 cfab                      			RJMP MAIN
                                  nextdisp3:
-0000b0 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
-0000b1 f009                      		BREQ SHW_DISP_3
-0000b2 cfab                      		RJMP MAIN
+0000b1 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+0000b2 f009                      		BREQ SHW_DISP_3
+0000b3 cfa8                      		RJMP MAIN
                                  
                                  		SHW_DISP_3:
-0000b3 e020                      			LDI R18, 0x00				; Alternar
-0000b4 e000                      			LDI R16, 0x00
-0000b5 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0000b4 e020                      			LDI R18, 0x00				; Alternar
+0000b5 e000                      			LDI R16, 0x00
+0000b6 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0000b6 9a2b                      			SBI PORTB, 3				; Habilitar display 3
-0000b7 982a                      			CBI PORTB, 2				; Deshabilitar display 2
-0000b8 9829                      			CBI PORTB, 1				; Deshabilitar display 1
-0000b9 9828                      			CBI PORTB, 0				; Deshabilitar display 0
+0000b7 9828                      			CBI PORTB, 0				; Habilitar display 3
+0000b8 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+0000b9 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0000ba 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0000ba e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0000bb e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0000bb e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0000bc e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0000bc 1fe8                      			ADC ZL, R24					; Sumar el valor de unidades segundos a ZL (parte baja)
-0000bd 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0000be 9194                      			LPM R25, Z					; Cargar pointer en registro
-0000bf b99b                      			OUT PORTD, R25				; Mostrar registro en puerto D
+0000bd 1fe8                      			ADC ZL, R24					; Sumar el valor de unidades segundos a ZL (parte baja)
+0000be 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0000bf 9114                      			LPM R17, Z					; Cargar pointer en registro
+0000c0 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0000c0 cf9d                      			RJMP MAIN
+0000c1 cf9a                      			RJMP MAIN
                                  
-0000c1 cf9c                      		RJMP MAIN
+0000c2 cf99                      		RJMP MAIN
                                  
                                  ; =============================================
                                  ; Contador de overflow para 7 segmentos
                                  ; =============================================
                                  
                                  CNT_OVF:
-0000c2 9aa8                      	SBI TIFR0, TOV0				; Limpiar bandera de "overflow"
-0000c3 eb02                          LDI R16, 178	
-0000c4 bd06                          OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
+0000c3 9aa8                      	SBI TIFR0, TOV0				; Limpiar bandera de "overflow"
+0000c4 eb02                          LDI R16, 178	
+0000c5 bd06                          OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
                                  
-0000c5 9543                      	INC R20
+0000c6 9543                      	INC R20
 
 
 RESOURCE USE INFORMATION
@@ -1343,27 +1346,27 @@ counted separately from r26..r31 here.
 "ATmega328P" register use summary:
 x  :   0 y  :   0 z  :   5 r0 :   0 r1 :   4 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  42 r17:   2 r18:   9 r19:   0 r20:   4 
-r21:   8 r22:   7 r23:   6 r24:   5 r25:  10 r26:   0 r27:   0 r28:   0 
+r13:   0 r14:   0 r15:   0 r16:  42 r17:  10 r18:   9 r19:   0 r20:   4 
+r21:   8 r22:   7 r23:   7 r24:   5 r25:   0 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   9 r31:   9 
-Registers used: 13 out of 35 (37.1%)
+Registers used: 12 out of 35 (34.3%)
 
 "ATmega328P" instruction use summary:
 .lds  :   0 .sts  :   0 adc   :   8 add   :   0 adiw  :   0 and   :   0 
 andi  :   0 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :   9 brge  :   0 brhc  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :  10 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
 brne  :   0 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :  12 cbr   :   0 
+brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :   4 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   1 cln   :   0 clr   :   0 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :   9 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
+cpi   :  10 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
 fmulsu:   0 icall :   0 ijmp  :   0 in    :   0 inc   :   5 jmp   :   2 
-ld    :   0 ldd   :   0 ldi   :  53 lds   :   0 lpm   :  10 lsl   :   0 
+ld    :   0 ldd   :   0 ldi   :  52 lds   :   0 lpm   :  10 lsl   :   0 
 lsr   :   0 mov   :   0 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  21 pop   :   0 
-push  :   0 rcall :   0 ret   :   0 reti  :   1 rjmp  :  15 rol   :   0 
-ror   :   0 sbc   :   0 sbci  :   0 sbi   :   5 sbic  :   0 sbis  :   0 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  20 pop   :   0 
+push  :   0 rcall :   0 ret   :   0 reti  :   1 rjmp  :  16 rol   :   0 
+ror   :   0 sbc   :   0 sbci  :   0 sbi   :  13 sbic  :   0 sbis  :   0 
 sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   0 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
 sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :   6 
@@ -1373,7 +1376,7 @@ Instructions used: 15 out of 113 (13.3%)
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x00018e    322     16    338   32768   1.0%
+[.cseg] 0x000000 0x000190    324     16    340   32768   1.0%
 [.dseg] 0x000100 0x000100      0      0      0    2048   0.0%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 
