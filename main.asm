@@ -107,6 +107,7 @@ START:
 		LDI R26, 0x00				; Inicializar contador decenas dias
 		LDI R27, 0x01				; Inicializar contador unidades mes
 		LDI R28, 0x00				; Inicializar contador decenas dias
+		LDI R29, 0x00				; Inicializar contador de segundos
 
 		LDI R18, 0x00				; Inicializar alternador
 
@@ -119,10 +120,22 @@ START:
 	; =============================================
 
 	MAIN:
-		
-		CPI R20, 1						; Verificar si ya se completaron 50 vueltas (1 segundo)
+
+		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
+		CPI R20, 0						; Condicionales para el punto
+		BREQ DT_N
+		CPI R20, 25
+		BREQ DT_F
+
 		RJMP alternador
+
+		DT_N:
+			LDI R25, 1
+			RJMP alternador
+		DT_F:
+			LDI R25, 0
+			RJMP alternador
 
 		; =========================================
 		; Condicionales para reloj 24 hrs
@@ -131,63 +144,77 @@ START:
 		RST_CCNT:
 			LDI R20, 0x00				; Resetear contador de contador
 
-			CPI R21, 0x09				; Verificar si unidades ya es 9
-			BREQ RST_CNT_U_S			; Si ya es 9, resetear counter, sino saltar 
+			CPI R29, 59					; Verificar si unidades ya es 9
+			BREQ RST_CNT_S				; Si ya es 9, resetear counter, sino saltar 
 
-			INC R21						; Incrementar contador unidades segundos
-
+			INC R29						; Incrementar contador unidades segundos
+			
 			RJMP MAIN
 
-			RST_CNT_U_S:
-				LDI R21, 0x00			; Reiniciar contador unidades segundos
+			RST_CNT_S:
+				LDI R29, 0x00
 
-				CPI R22, 0x05			; Verificar decenas si ya es 5
-				BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
+				CPI R21, 0x09
+				BREQ RST_CNT_U_S
 
-				INC R22					; Aumentar contador decenas segundos
+				INC R21
 
 				RJMP MAIN
 
-				RST_CNT_D_S:
+				RST_CNT_U_S:
 					LDI R21, 0x00			; Reiniciar contador unidades segundos
-					LDI R22, 0x00			; Reiniciar contador decenas segundos 
+					LDI R29, 0x00
 
-					CPI R23, 0x03			; Verificar si unidades minutos ya es 3
-					BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
-					continue1:
-					CPI R23, 0x09			; Verificar si unidades minutos ya es 9
-					BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
+					CPI R22, 0x05			; Verificar decenas si ya es 5
+					BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
 
-					INC R23					; Aumentar unidades minutos
+					INC R22					; Aumentar contador decenas segundos
 
 					RJMP MAIN
 
-					RST_CNT_U_M:
+					RST_CNT_D_S:
 						LDI R21, 0x00			; Reiniciar contador unidades segundos
-						LDI R22, 0x00			; Reiniciar contador decenas segundos
-						LDI R23, 0x00			; Reiniciar contador unidades minutos				
+						LDI R22, 0x00			; Reiniciar contador decenas segundos 
+						LDI R29, 0x00
 
-						INC R24					; Incrementar contador decenas minutos
+						CPI R23, 0x03			; Verificar si unidades minutos ya es 3
+						BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
+						continue1:
+						CPI R23, 0x09			; Verificar si unidades minutos ya es 9
+						BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
+
+						INC R23					; Aumentar unidades minutos
 
 						RJMP MAIN
 
-					RST_CNT_D_M:
-
-						CPI R24, 0x02			; Verificar si ya son 24 horas
-						BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
-						RJMP continue1			
-
-						RST_CNT_M:
+						RST_CNT_U_M:
 							LDI R21, 0x00			; Reiniciar contador unidades segundos
 							LDI R22, 0x00			; Reiniciar contador decenas segundos
 							LDI R23, 0x00			; Reiniciar contador unidades minutos
-							LDI R24, 0x00			; Reiniciar contador decenas minutos
+							LDI R29, 0x00				
 
-							RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
+							INC R24					; Incrementar contador decenas minutos
+
+							RJMP MAIN
+
+						RST_CNT_D_M:
+
+							CPI R24, 0x02			; Verificar si ya son 24 horas
+							BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
+							RJMP continue1			
+
+							RST_CNT_M:
+								LDI R21, 0x00			; Reiniciar contador unidades segundos
+								LDI R22, 0x00			; Reiniciar contador decenas segundos
+								LDI R23, 0x00			; Reiniciar contador unidades minutos
+								LDI R24, 0x00			; Reiniciar contador decenas minutos
+								LDI R29, 0x00
+
+								;RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
 		; ==================================
 		; Condicionales Fecha
 		; ==================================
-
+		/*
 		COMP_DATE:
 			;-----ENERO-----
 			CPI R27, 0x01				; Verificar si es 1
@@ -219,7 +246,7 @@ START:
 					LDI R27, 0x01			;
 					LDI R28, 0x00			;
 					RJMP MAIN
-
+					*/
 		; ==================================
 		; Alternadores de display
 		; ==================================
@@ -289,9 +316,22 @@ nextdisp2:
 			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
-			OUT PORTD, R17				; Mostrar registro en puerto D
+			OUT PORTD, R17				; Mostrar registro en puerto D	
 
+			cont_comp:
+			CPI R25, 1					; Condicionales para el punto
+			BREQ DOT_ON
+			CPI R25, 0
+			BREQ DOT_OFF
 			RJMP MAIN
+
+			DOT_ON:
+				SBI PORTD, 7
+				RJMP MAIN
+			DOT_OFF:
+				CBI PORTD, 7
+				RJMP MAIN
+
 nextdisp3:
 		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
 		BREQ SHW_DISP_3
@@ -320,7 +360,7 @@ nextdisp3:
 		RJMP MAIN
 
 ; =============================================
-; Contador de overflow para 7 segmentos
+; Contador de overflow para 7 segmentos, 20ms
 ; =============================================
 
 CNT_OVF:
