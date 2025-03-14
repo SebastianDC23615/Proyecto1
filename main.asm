@@ -19,6 +19,11 @@ DMIN: .byte 1			; Asignar a RAM decenas de minuto
 UHOR: .byte 1			; Asignar a RAM unidades de hora
 DHOR: .byte 1			; Asignar a RAM decenas de hora
 
+UMON: .byte 1			; Asignar a RAM unidades de mes
+DMON: .byte 1			; Asignar a RAM decenas de mes
+UDAT: .byte 1			; Asignar a RAM unidades de dia
+DDAT: .byte 1			; Asignar a RAM decenas de dia
+
 S_UMIN: .byte 1			; Asignar a RAM config de hora
 S_DMIN: .byte 1			; Asignar a RAM config de hora
 S_UHOR: .byte 1			; Asignar a RAM config de hora
@@ -40,6 +45,7 @@ START:
 	; =============================================
 	; Configuración de la pila
 	; =============================================
+
 	LDI R16, LOW(RAMEND)
 	OUT SPL, R16
 	LDI R16, HIGH(RAMEND)
@@ -117,12 +123,13 @@ START:
 		; =========================================
 
 		LDI R18, 0x00				; Inicializar alternador
-		LDI R19, 0x00				; Estado a mostrar, 
+		LDI R19, 0x01				; Estado a mostrar, 
 									;		0: modo hora
 									;		1: modo fecha
 									;		2: modo config hora
 									;		3: modo config fecha
 									;		4: modo config alarma
+
 		LDI R20, 0x00				; Inicializar contador de contador
 		LDI R21, 0x00				; Común de RAM
 		LDI R25, 0x01				; Inicializar alternador de punto
@@ -132,6 +139,11 @@ START:
 		STS DMIN, R21				; Cargar inicial a decenas minutos
 		STS UHOR, R21				; Cargar inicial a unidades horas
 		STS DHOR, R21				; Cargar inicial a decenas horas
+
+		STS UMON, R21				; Cargar inicial a unidades mes				
+		STS DMON, R21				; Cargar inicial a decenas mes
+		STS UDAT, R21				; Cargar inicial a unidades dia
+		STS DDAT, R21				; Cargar inicial a decenas dia
 
 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
 		STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
@@ -169,7 +181,7 @@ START:
 		alt_hora:
 			RJMP alternador_hora
 		alt_fecha:
-			RJMP MAIN
+			RJMP alternador_fecha
 		alt_hora_config:
 			RJMP MAIN
 		alt_fecha_config:
@@ -282,12 +294,17 @@ START:
 		; Condicionales Fecha
 		; ==================================
 		
-
+		COMP_DATE:
+			
 
 
 		; ==================================
 		; Alternadores de display
 		; ==================================
+
+; =============================
+; Alternador de hora
+; =============================
 alternador_hora:
 		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 		BREQ SHW_DISP_0
@@ -312,7 +329,7 @@ alternador_hora:
 			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
-nextdisp1:
+	nextdisp1:
 		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
 		BREQ SHW_DISP_1
 		RJMP nextdisp2
@@ -336,7 +353,7 @@ nextdisp1:
 			OUT PORTD, R17				; Mostrar registro en puerto D
 
 			RJMP MAIN
-nextdisp2:
+	nextdisp2:
 		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
 		BREQ SHW_DISP_2
 		RJMP nextdisp3
@@ -359,7 +376,6 @@ nextdisp2:
 			LPM R17, Z					; Cargar pointer en registro
 			OUT PORTD, R17				; Mostrar registro en puerto D	
 
-			cont_comp:
 			CPI R25, 1					; Condicionales para el punto
 			BREQ DOT_ON
 			CPI R25, 0
@@ -373,12 +389,126 @@ nextdisp2:
 				CBI PORTD, 7
 				RJMP MAIN
 
-nextdisp3:
+	nextdisp3:
 		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
 		BREQ SHW_DISP_3
 		RJMP MAIN
 
 		SHW_DISP_3:
+			LDI R18, 0x00				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			CBI PORTB, 0				; Habilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			LDS R21, DHOR
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
+
+			RJMP MAIN
+
+; =============================
+; Alternador de fecha
+; =============================
+
+alternador_fecha:
+	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+		BREQ SHW_DISP_0_DATE
+		RJMP nextdisp4
+		SHW_DISP_0_DATE:
+			LDI R18, 0x01				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			SBI PORTB, 0				; Deshabilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			CBI PORTB, 3				; Habilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			LDS R21, UMIN
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
+
+			RJMP MAIN
+	nextdisp4:
+		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+		BREQ SHW_DISP_1_DATE
+		RJMP nextdisp5
+		SHW_DISP_1_DATE:
+			LDI R18, 0x02				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			SBI PORTB, 0				; Deshabilitar display 3
+			SBI PORTB, 1				; Deshabilitar display 2
+			CBI PORTB, 2				; Habilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			LDS R21, DMIN
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D
+
+			RJMP MAIN
+	nextdisp5:
+		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+		BREQ SHW_DISP_2_DATE
+		RJMP nextdisp6
+		SHW_DISP_2_DATE:
+			LDI R18, 0x03				; Alternar
+			LDI R16, 0x00
+			OUT PORTD, R16				; Eliminar ghost de PORTD
+
+			SBI PORTB, 0				; Deshabilitar display 3
+			CBI PORTB, 1				; Habilitar display 2
+			SBI PORTB, 2				; Deshabilitar display 1
+			SBI PORTB, 3				; Deshabilitar display 0
+
+			LDI ZL, LOW(TRADUCTOR << 1)	;
+			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+			LDS R21, UHOR
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+			LPM R17, Z					; Cargar pointer en registro
+			OUT PORTD, R17				; Mostrar registro en puerto D	
+
+			CPI R25, 1					; Condicionales para el punto
+			BREQ DOT_ON_DATE
+			CPI R25, 0
+			BREQ DOT_OFF_DATE
+			RJMP MAIN
+
+			DOT_ON_DATE:
+				SBI PORTD, 7
+				RJMP MAIN
+			DOT_OFF_DATE:
+				CBI PORTD, 7
+				RJMP MAIN
+
+	nextdisp6:
+		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+		BREQ SHW_DISP_3_DATE
+		RJMP MAIN
+
+		SHW_DISP_3_DATE:
 			LDI R18, 0x00				; Alternar
 			LDI R16, 0x00
 			OUT PORTD, R16				; Eliminar ghost de PORTD
@@ -411,6 +541,7 @@ CNT_OVF:
     OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
 
 	INC R20
+
 	RETI
 
 ; =============================================
