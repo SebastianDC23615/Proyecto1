@@ -11,6 +11,24 @@
 
 .include "m328Pdef.inc"
 
+.dseg
+.org SRAM_START			; Utilizar RAM para guardar valores
+SEGS: .byte 1			; Asignar a RAM segundos
+UMIN: .byte 1			; Asignar a RAM unidades de minuto
+DMIN: .byte 1			; Asignar a RAM decenas de minuto
+UHOR: .byte 1			; Asignar a RAM unidades de hora
+DHOR: .byte 1			; Asignar a RAM decenas de hora
+
+S_UMIN: .byte 1			; Asignar a RAM config de hora
+S_DMIN: .byte 1			; Asignar a RAM config de hora
+S_UHOR: .byte 1			; Asignar a RAM config de hora
+S_DHOR: .byte 1			; Asignar a RAM config de hora
+
+UMALARM: .byte 1		; Asignar a RAM unidades de minuto para alarma
+DMALARM: .byte 1		; Asignar a RAM decenas de minuto para alarma
+UHALARM: .byte 1		; Asignar a RAM unidades de hora para alarma
+DHALARM: .byte 1		; Asignar a RAM decenas de hora para alarma
+
 .cseg
 .org 0x0000
 JMP START
@@ -63,8 +81,8 @@ START:
 		LDI R16, (1<<PCIE1)					; Habilitar interrupciones en PORTC
 		STS PCICR, R16						;
 
-		LDI R16, (1<<PCINT8) | (1<<PCINT9) | (1<<PCINT10)	; Habilitar interrupciones en PB0 y PB1
-		STS PCMSK0, R16										;
+		LDI R16, (1<<PCINT8) | (1<<PCINT9) | (1<<PCINT10) | (1<<PCINT11)
+		STS PCMSK0, R16						; Habilitar interrupciones en PC0, PC1, PC2 y PC3
 
 		LDI R16, (1 << TOIE0)				; Habilitar interrupciones por overflow de timer
 		STS TIMSK0, R16	
@@ -98,29 +116,36 @@ START:
 		; Configuraciones Extra
 		; =========================================
 
-		LDI R20, 0x00				; Inicializar contador de contador
-		LDI R21, 0x00				; Inicializar contador unidades minutos
-		LDI R22, 0x00				; Inicializar contador decenas minutos
-		LDI R23, 0x00				; Inicializar contador unidades horas
-		LDI R24, 0x00				; Inicializar contador decenas horas
-		LDI R25, 0x01				; Inicializar contador unidades dias
-		LDI R26, 0x00				; Inicializar contador decenas dias
-		LDI R27, 0x01				; Inicializar contador unidades mes
-		LDI R28, 0x00				; Inicializar contador decenas dias
-		LDI R29, 0x00				; Inicializar contador de segundos
-
 		LDI R18, 0x00				; Inicializar alternador
+		LDI R19, 0x00				; Estado a mostrar, 
+									;		0: modo hora
+									;		1: modo fecha
+									;		2: modo config hora
+									;		3: modo config fecha
+									;		4: modo config alarma
+		LDI R20, 0x00				; Inicializar contador de contador
+		LDI R21, 0x00				; Común de RAM
+		LDI R25, 0x01				; Inicializar alternador de punto
+
+		STS SEGS, R21				; Cargar inicial a segundos
+		STS UMIN, R21				; Cargar inicial a unidades minutos				
+		STS DMIN, R21				; Cargar inicial a decenas minutos
+		STS UHOR, R21				; Cargar inicial a unidades horas
+		STS DHOR, R21				; Cargar inicial a decenas horas
+
+		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
+		STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
+		STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
+		STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
 
 		SEI							; Habilitar interrupciones
-
-
 
 	; =============================================
 	; Bucle Principal
 	; =============================================
 
 	MAIN:
-
+		
 		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 		CPI R20, 0						; Condicionales para el punto
@@ -128,129 +153,142 @@ START:
 		CPI R20, 25
 		BREQ DT_F
 
-		RJMP alternador
+		ver_mode:
+		CPI R19, 0
+		BREQ alt_hora
+		CPI R19, 1
+		BREQ alt_fecha
+		CPI R19, 2
+		BREQ alt_hora_config
+		CPI R19, 3
+		BREQ alt_fecha_config
+		CPI R19, 4
+		BREQ alt_alarm
+		RJMP MAIN
+
+		alt_hora:
+			RJMP alternador_hora
+		alt_fecha:
+			RJMP MAIN
+		alt_hora_config:
+			RJMP MAIN
+		alt_fecha_config:
+			RJMP MAIN
+		alt_alarm:
+			RJMP MAIN
+
 
 		DT_N:
 			LDI R25, 1
-			RJMP alternador
+			RJMP ver_mode
 		DT_F:
 			LDI R25, 0
-			RJMP alternador
+			RJMP ver_mode
 
 		; =========================================
 		; Condicionales para reloj 24 hrs
 		; =========================================
 
 		RST_CCNT:
-			LDI R20, 0x00				; Resetear contador de contador
+			LDI R20, 0x00				; Reiniciar contador de contador
 
-			CPI R29, 59					; Verificar si unidades ya es 9
-			BREQ RST_CNT_S				; Si ya es 9, resetear counter, sino saltar 
+			LDS R21, SEGS
+			CPI R21, 59					; Verificar si segundos ya es 59
+			BREQ RST_CNT_S				; Si ya es 59, resetear counter, sino saltar 
 
-			INC R29						; Incrementar contador unidades segundos
+			INC R21						; Incrementar contador segundos
+			STS SEGS, R21
 			
 			RJMP MAIN
 
 			RST_CNT_S:
-				LDI R29, 0x00
 
-				CPI R21, 0x09
-				BREQ RST_CNT_U_S
+				LDI R21, 0x00
+				STS SEGS, R21			; Reiniciar unidades de segundos
 
-				INC R21
+				LDS R21, UMIN			; Cargar de RAM
+				CPI R21, 0x09			; Verificar si unidades minutos ya es 9
+				BREQ RST_CNT_U_S		; Si ya es 9, resetear, sino saltar
+
+				INC R21					; Incrementar unidades minutos
+				STS UMIN, R21			; Cargar a RAM
 
 				RJMP MAIN
 
 				RST_CNT_U_S:
-					LDI R21, 0x00			; Reiniciar contador unidades segundos
-					LDI R29, 0x00
 
-					CPI R22, 0x05			; Verificar decenas si ya es 5
+					LDI R21, 0x00			
+					STS SEGS, R21			; Reiniciar contador segundos
+					STS UMIN, R21			; Reiniciar contador unidades minutos
+
+					LDS R21, DMIN			; Cargar de RAM
+					CPI R21, 0x05			; Verificar decenas si ya es 5
 					BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
 
-					INC R22					; Aumentar contador decenas segundos
+					INC R21					; Aumentar contador decenas segundos
+					STS DMIN, R21			; Cargar a RAM
 
 					RJMP MAIN
 
 					RST_CNT_D_S:
-						LDI R21, 0x00			; Reiniciar contador unidades segundos
-						LDI R22, 0x00			; Reiniciar contador decenas segundos 
-						LDI R29, 0x00
+						LDI R21, 0x00		
+						STS SEGS, R21			; Reiniciar contador segundos
+						STS UMIN, R21			; Reiniciar contador unidades minutos
+						STS DMIN, R21			; Reiniciar contador decenas minutos
 
-						CPI R23, 0x03			; Verificar si unidades minutos ya es 3
+						LDS R21, UHOR			; Cargar de RAM
+						CPI R21, 0x03			; Verificar si unidades minutos ya es 3
 						BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
 						continue1:
-						CPI R23, 0x09			; Verificar si unidades minutos ya es 9
+						LDS R21, UHOR
+						CPI R21, 0x09			; Verificar si unidades minutos ya es 9
 						BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
 
-						INC R23					; Aumentar unidades minutos
+						INC R21					; Aumentar unidades minutos
+						STS UHOR, R21			; Cargar a RAM
 
 						RJMP MAIN
 
 						RST_CNT_U_M:
-							LDI R21, 0x00			; Reiniciar contador unidades segundos
-							LDI R22, 0x00			; Reiniciar contador decenas segundos
-							LDI R23, 0x00			; Reiniciar contador unidades minutos
-							LDI R29, 0x00				
+							LDI R21, 0x00
+							STS SEGS, R21			; Reiniciar contador segundos
+							STS UMIN, R21			; Reiniciar contador unidades minutos
+							STS DMIN, R21			; Reiniciar contador decenas minutos
+							STS UHOR, R21			; Reiniciar contador unidades horas				
 
-							INC R24					; Incrementar contador decenas minutos
+							LDS R21, DHOR			; Cargar de RAM
+							INC R21					; Incrementar contador decenas horas
+							STS DHOR, R21			; Cargar a RAM
 
-							RJMP MAIN
+							RJMP MAIN				;me quede aqui
 
 						RST_CNT_D_M:
-
-							CPI R24, 0x02			; Verificar si ya son 24 horas
+							
+							LDS R21, DHOR
+							CPI R21, 0x02			; Verificar si ya son 24 horas
 							BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
 							RJMP continue1			
 
 							RST_CNT_M:
-								LDI R21, 0x00			; Reiniciar contador unidades segundos
-								LDI R22, 0x00			; Reiniciar contador decenas segundos
-								LDI R23, 0x00			; Reiniciar contador unidades minutos
-								LDI R24, 0x00			; Reiniciar contador decenas minutos
-								LDI R29, 0x00
+								LDI R21, 0x00			
+								STS SEGS, R21			; Reiniciar contador segundos
+								STS UMIN, R21			; Reiniciar contador unidades minutos
+								STS DMIN, R21			; Reiniciar contador decenas minutos
+								STS UHOR, R21			; Reiniciar contador unidades horas	
+								STS DHOR, R21			; Reiniciar contador decenas horas	
 
 								;RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
 		; ==================================
 		; Condicionales Fecha
 		; ==================================
-		/*
-		COMP_DATE:
-			;-----ENERO-----
-			CPI R27, 0x01				; Verificar si es 1
-			BREQ VER_ENERO				; Si es enero/, verificar dias, sino saltar
-			RJMP feberero
+		
 
 
-			febrero:
-			CPI R27, 0x02				; Verificar si es febrero
 
-		LIMIT_MONTH:
-			CPI R27, 0x02				; Si unidades mes es 2
-			BREQ LIM_MON_D				; Si es, verificar decena, sino, saltar
-			
-			INC R27						; Aumentar mes
-
-			LIM_MON_D:
-				CPI R28, 0x01			; Si decenas mes es 1
-				BREQ RST_GLOBAL			; Saltar a reiniciar todo, sino, saltar
-				RJMP MAIN
-
-				RST_GLOBAL:
-					LDI R21, 0x00			; Reiniciar contadores segundos y minutos
-					LDI R22, 0x00			;
-					LDI R23, 0x00			;
-					LDI R24, 0x00			;
-					LDI R25, 0x01			; Reiniciar contadores mes y dia
-					LDI R26, 0x00			;
-					LDI R27, 0x01			;
-					LDI R28, 0x00			;
-					RJMP MAIN
-					*/
 		; ==================================
 		; Alternadores de display
 		; ==================================
-alternador:
+alternador_hora:
 		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 		BREQ SHW_DISP_0
 		RJMP nextdisp1
@@ -267,6 +305,7 @@ alternador:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
+			LDS R21, UMIN
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
@@ -290,7 +329,8 @@ nextdisp1:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			ADC ZL, R22					; Sumar el valor de unidades segundos a ZL (parte baja)
+			LDS R21, DMIN
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
 			OUT PORTD, R17				; Mostrar registro en puerto D
@@ -313,7 +353,8 @@ nextdisp2:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			ADC ZL, R23					; Sumar el valor de unidades segundos a ZL (parte baja)
+			LDS R21, UHOR
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
 			OUT PORTD, R17				; Mostrar registro en puerto D	
@@ -350,7 +391,8 @@ nextdisp3:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			ADC ZL, R24					; Sumar el valor de unidades segundos a ZL (parte baja)
+			LDS R21, DHOR
+			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
 			OUT PORTD, R17				; Mostrar registro en puerto D
@@ -370,3 +412,9 @@ CNT_OVF:
 
 	INC R20
 	RETI
+
+; =============================================
+; Interrupciones de botón
+; =============================================
+
+;BTN_INT:
