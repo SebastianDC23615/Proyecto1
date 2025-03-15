@@ -711,6 +711,37 @@ alternador_fecha:
 
 		RJMP MAIN
 
+; =============================
+; Alternador config de hora
+; =============================
+
+alternador_config_hora:
+/*
+STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
+STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
+STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
+STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
+*/
+	LDS R21, UMIN			; Tomar unidad minuto actual  
+	STS S_UMIN, R21			; Guardar en unidad minuto config
+	LDS R21, DMIN			; Tomar decena minuto actual
+	STS S_DMIN, R21			; Guardar en unidad 
+
+	;aqui me quedé
+
+	
+; =============================
+; Alternador config de fecha
+; =============================
+
+alternador_config_fecha:
+
+; =============================
+; Alternador alarma
+; =============================
+
+alternador_alarma:
+
 ; =============================================
 ; Contador de overflow para 7 segmentos, 20ms
 ; =============================================
