@@ -140,9 +140,13 @@ START:
 		STS UHOR, R21				; Cargar inicial a unidades horas
 		STS DHOR, R21				; Cargar inicial a decenas horas
 
-		STS UMON, R21				; Cargar inicial a unidades mes				
+		LDI R21, 0x00
+		STS UMON, R21				; Cargar inicial a unidades mes	
+		LDI R21, 0x01			
 		STS DMON, R21				; Cargar inicial a decenas mes
+		LDI R21, 0x05
 		STS UDAT, R21				; Cargar inicial a unidades dia
+		LDI R21, 0x02
 		STS DDAT, R21				; Cargar inicial a decenas dia
 
 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
@@ -158,7 +162,7 @@ START:
 
 	MAIN:
 		
-		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
+		CPI R20, 25						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 		CPI R20, 0						; Condicionales para el punto
 		BREQ DT_N
@@ -203,7 +207,7 @@ START:
 
 		RST_CCNT:
 			LDI R20, 0x00				; Reiniciar contador de contador
-
+			RJMP RST_CNT_M
 			LDS R21, SEGS
 			CPI R21, 59					; Verificar si segundos ya es 59
 			BREQ RST_CNT_S				; Si ya es 59, resetear counter, sino saltar 
@@ -214,7 +218,7 @@ START:
 			RJMP MAIN
 
 			RST_CNT_S:
-
+				
 				LDI R21, 0x00
 				STS SEGS, R21			; Reiniciar unidades de segundos
 
@@ -272,7 +276,7 @@ START:
 							INC R21					; Incrementar contador decenas horas
 							STS DHOR, R21			; Cargar a RAM
 
-							RJMP MAIN				;me quede aqui
+							RJMP MAIN
 
 						RST_CNT_D_M:
 							
@@ -289,14 +293,190 @@ START:
 								STS UHOR, R21			; Reiniciar contador unidades horas	
 								STS DHOR, R21			; Reiniciar contador decenas horas	
 
-								;RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
+								RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
 		; ==================================
 		; Condicionales Fecha
 		; ==================================
 		
 		COMP_DATE:
-			
+		
+		;----final 28----
+		fin_28:
+			LDS R21, UDAT			; Cargar de RAM
+			CPI R21, 0x08			; Verificar si unidad es 8
+			BREQ VER_28				; Si si, verificar si es 2
+			RJMP fin_30
 
+			VER_28:
+				LDS R21, DDAT
+				CPI R21, 0x02			; Verificar si decena es 2 para 28
+				BREQ VER_FEB_D			; Si si, verificar febrero
+				RJMP fin_30
+
+				VER_FEB_D:
+					LDS R21, DMON
+					CPI R21, 0x00			; Verificar si decena es 0
+					BREQ VER_FEB_U			; Si si, verificar si es 2
+					RJMP fin_30
+					
+					VER_FEB_U:
+						LDS R21, UMON
+						CPI R21, 0x02			; Verificar si es 02
+						BREQ RST_DAY_FEB		; Si si, resetear counter y aumentar a marzo
+						RJMP fin_30
+						RST_DAY_FEB:
+							RJMP INC_MON
+		;----final 30----
+		fin_30:
+			LDS R21, UDAT
+			CPI R21, 0x00			; Verificar si unidad dia es 0
+			BREQ VER_30				; si si, verificar decena
+			RJMP fin_31
+			
+			VER_30:
+				LDS R21, DDAT
+				CPI R21, 0x03			; Verificar si decena es 3
+				BREQ VER_30_INC			; Si si, verificar que mes es
+				RJMP fin_31
+
+				VER_30_INC:
+					LDS R21, DMON
+					CPI R21, 0x01			; Verificar si decena mes es 1
+					BREQ VER_NOV			; Si si, verificar si es noviembre
+					RJMP continue3
+
+					VER_NOV:
+						LDS R21, UMON
+						CPI R21, 0x01			; Verificar si unidad es 1
+						BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+
+					continue3:
+					LDS R21, UMON
+					CPI R21, 0x04			; Verificar si es abril
+					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x06			; Verificar si es junio
+					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x09			; Verificar si es septiembre
+					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+					RJMP fin_31
+
+					RST_DAY_30:
+						RJMP INC_MON
+					
+
+
+		;----final 31----
+		fin_31:
+			LDS R21, UDAT
+			CPI R21, 0x01			; Verificar si unidad dia es 1
+			BREQ VER_31				; Si si, verificar decena dia
+			RJMP fin_9
+
+			VER_31:
+				LDS R21, DDAT
+				CPI R21, 0x03			; Verificar si decena dia es 3
+				BREQ VER_31_INC			; Si si, verificar que mes
+				RJMP fin_9
+
+				VER_31_INC:
+					LDS R21, DMON
+					CPI R21, 0x01			; Verificar si decena mes es 1
+					BREQ VER_OCTDIC			; Si si, verificar si es octubre o diciembre
+					RJMP continue4
+
+					VER_OCTDIC:
+						LDS R21, UMON
+						CPI R21, 0x00			; Verificar si es octubre
+						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+						CPI R21, 0x02			; Verificar si es diciembre
+						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+
+					continue4:
+					LDS R21, UMON
+					CPI R21, 0x01			; Verificar si es enero
+					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x03			; Verificar si es marzo
+					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x05			; Verificar si es mayo
+					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x07			; Verificar si es julio
+					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x08			; Verificar si es agosto
+					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+					RJMP fin_9
+
+					RST_DAY_31:
+						RJMP INC_MON
+
+		;----inc a dia cuando unidad es 9----
+		fin_9:
+			LDS R21, UDAT
+			CPI R21, 0x09			; Verificar si unidad es 9
+			BREQ INC_DAY_D			; Si si, incrementar decena, sino saltar
+			LDS R21, UDAT
+			INC R21					; Incrementar unidad dia
+			STS UDAT, R21
+			RJMP MAIN
+
+			INC_DAY_D:
+				LDI R21, 0x00
+				STS UDAT, R21		; Reiniciar unidad dia
+
+				LDS R21, DDAT
+				INC R21				; Incrementar decena dia
+				STS DDAT, R21
+				RJMP MAIN
+
+		;----incrementar mes----
+			INC_MON:
+				LDI R21, 0x01			; Resetear el dia a 01
+				STS UDAT, R21
+				LDI R21, 0x00
+				STS DDAT, R21
+
+				LDS R21, UMON
+				CPI R21, 0x02			; Verificar si unidad de mes es 2
+				BREQ VER_MON_D_1		; Si si, verificar si decena es 1
+				RJMP continue2
+
+				VER_MON_D_1:
+					LDS R21, DMON
+					CPI R21, 0x01			; Verificar si decena de mes es 1
+					BREQ RST_ALL			; Si si, resetear toda la fecha
+					RJMP continue2
+
+					RST_ALL:
+						LDI R21, 0x01
+						STS UDAT, R21			; Reiniciar unidades mes y dia a 01;01
+						STS UMON, R21
+						LDI R21, 0x00
+						STS DDAT, R21			; Reiniciar decenas mes a 0
+						STS DMON, R21
+
+						STS SEGS, R21			; Reiniciar contador segundos
+						STS UMIN, R21			; Reiniciar contador unidades minutos
+						STS DMIN, R21			; Reiniciar contador decenas minutos
+						STS UHOR, R21			; Reiniciar contador unidades horas	
+						STS DHOR, R21			; Reiniciar contador decenas horas
+						RJMP MAIN
+
+				continue2:
+				LDS R21, UMON
+				CPI R21, 0x09			; Verificar si unidad de mes en limite 9
+				BREQ RST_MON			; Si si, pasar a octubre-diciembre
+
+				INC R21
+				STS UMON, R21			; Incrementar unidades mes
+
+				RJMP MAIN
+
+				RST_MON:
+					LDI R21, 0x00
+					STS UMON, R21			; Pasar unidades mes de 9 a 0
+					LDI R21, 0x01
+					STS DMON, R21			; Pasar decenas mes de 0 a 1
+					RJMP MAIN
+		RJMP MAIN
 
 		; ==================================
 		; Alternadores de display
@@ -436,7 +616,7 @@ alternador_fecha:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			LDS R21, UMIN
+			LDS R21, UMON
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
@@ -460,7 +640,7 @@ alternador_fecha:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			LDS R21, DMIN
+			LDS R21, DMON
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
@@ -484,7 +664,7 @@ alternador_fecha:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			LDS R21, UHOR
+			LDS R21, UDAT
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
@@ -521,7 +701,7 @@ alternador_fecha:
 			LDI ZL, LOW(TRADUCTOR << 1)	;
 			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
 
-			LDS R21, DHOR
+			LDS R21, DDAT
 			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
