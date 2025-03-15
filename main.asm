@@ -123,7 +123,7 @@ START:
 		; =========================================
 
 		LDI R18, 0x00				; Inicializar alternador
-		LDI R19, 0x01				; Estado a mostrar, 
+		LDI R19, 0x00				; Estado a mostrar, 
 									;		0: modo hora
 									;		1: modo fecha
 									;		2: modo config hora
@@ -140,13 +140,13 @@ START:
 		STS UHOR, R21				; Cargar inicial a unidades horas
 		STS DHOR, R21				; Cargar inicial a decenas horas
 
-		LDI R21, 0x00
+		LDI R21, 0x01
 		STS UMON, R21				; Cargar inicial a unidades mes	
-		LDI R21, 0x01			
+		LDI R21, 0x00			
 		STS DMON, R21				; Cargar inicial a decenas mes
-		LDI R21, 0x05
+		LDI R21, 0x01
 		STS UDAT, R21				; Cargar inicial a unidades dia
-		LDI R21, 0x02
+		LDI R21, 0x00
 		STS DDAT, R21				; Cargar inicial a decenas dia
 
 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
@@ -162,7 +162,7 @@ START:
 
 	MAIN:
 		
-		CPI R20, 25						; Verificar si ya se completaron 50 vueltas (1 segundo)
+		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 		CPI R20, 0						; Condicionales para el punto
 		BREQ DT_N
@@ -207,7 +207,7 @@ START:
 
 		RST_CCNT:
 			LDI R20, 0x00				; Reiniciar contador de contador
-			RJMP RST_CNT_M
+			;RJMP RST_CNT_M				; Activar para correr fecha mas rapido
 			LDS R21, SEGS
 			CPI R21, 59					; Verificar si segundos ya es 59
 			BREQ RST_CNT_S				; Si ya es 59, resetear counter, sino saltar 
