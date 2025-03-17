@@ -24,10 +24,16 @@ DMON: .byte 1			; Asignar a RAM decenas de mes
 UDAT: .byte 1			; Asignar a RAM unidades de dia
 DDAT: .byte 1			; Asignar a RAM decenas de dia
 
+S_SEGS: .byte 1			; Asigmar a RAM config de segundos
 S_UMIN: .byte 1			; Asignar a RAM config de hora
 S_DMIN: .byte 1			; Asignar a RAM config de hora
 S_UHOR: .byte 1			; Asignar a RAM config de hora
 S_DHOR: .byte 1			; Asignar a RAM config de hora
+
+S_UMON: .byte 1			; Asignar a RAM config de fecha
+S_DMON: .byte 1			; Asignar a RAM config de fecha
+S_UDAT: .byte 1			; Asignar a RAM config de fecha
+S_DDAT: .byte 1			; Asignar a RAM config de fecha
 
 UMALARM: .byte 1		; Asignar a RAM unidades de minuto para alarma
 DMALARM: .byte 1		; Asignar a RAM decenas de minuto para alarma
@@ -37,6 +43,9 @@ DHALARM: .byte 1		; Asignar a RAM decenas de hora para alarma
 .cseg
 .org 0x0000
 JMP START
+
+.org 0x0008		; Vector de interrupción para PORTC
+JMP INT_PCINT
 
 .org 0x0020		; Vector de interrupción para overflow
 JMP CNT_OVF
@@ -75,10 +84,10 @@ START:
 		LDI R16, 0x00				;
 		OUT PORTB, R16				; Setear como salidas
 
-		LDI R16, 0x07				;
+		LDI R16, 0x0F				;
 		OUT DDRC, R16				; Puerto C como entrada
-		LDI R16, 0x07				;
-		OUT PORTC, R16				; Habilitar pullups en PC0, PC1 y PC2
+		LDI R16, 0x0F				;
+		OUT PORTC, R16				; Habilitar pullups en PC0, PC1, PC2 y PC3
 
 		; =========================================
 		; Interrupciones
@@ -88,7 +97,7 @@ START:
 		STS PCICR, R16						;
 
 		LDI R16, (1<<PCINT8) | (1<<PCINT9) | (1<<PCINT10) | (1<<PCINT11)
-		STS PCMSK0, R16						; Habilitar interrupciones en PC0, PC1, PC2 y PC3
+		STS PCMSK1, R16						; Habilitar interrupciones en PC0, PC1, PC2 y PC3
 
 		LDI R16, (1 << TOIE0)				; Habilitar interrupciones por overflow de timer
 		STS TIMSK0, R16	
@@ -149,10 +158,23 @@ START:
 		LDI R21, 0x00
 		STS DDAT, R21				; Cargar inicial a decenas dia
 
+		STS S_SEGS, R21				; Valor a guardar a segundos config 
 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
 		STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
 		STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
 		STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
+
+		LDI R21, 0x01
+		STS S_UMON, R21				; Valor a guardar a unidades mes config hora
+		STS S_UDAT, R21				; Valor a guardar a unidades dia config hora
+		LDI R21, 0x00
+		STS S_DMON, R21				; Valor a guardar a decenas mes config hora
+		STS S_DDAT, R21				; Valor a guardar a decenas dia config hora
+
+		STS UMALARM, R21			; Valor a guardar unidades de minuto alarma
+		STS DMALARM, R21			; Valor a guardar decenas de minuto alarma
+		STS UHALARM, R21			; Valor a guardar unidades de hora alarma
+		STS DHALARM, R21			; Valor a guardar decenas de hora alarma
 
 		SEI							; Habilitar interrupciones
 
@@ -187,11 +209,11 @@ START:
 		alt_fecha:
 			RJMP alternador_fecha
 		alt_hora_config:
-			RJMP MAIN
+			RJMP alternador_config_hora
 		alt_fecha_config:
-			RJMP MAIN
+			RJMP alternador_config_fecha
 		alt_alarm:
-			RJMP MAIN
+			RJMP alternador_alarma
 
 
 		DT_N:
@@ -207,6 +229,14 @@ START:
 
 		RST_CCNT:
 			LDI R20, 0x00				; Reiniciar contador de contador
+
+			CPI R19, 2
+			BREQ MAIN
+			CPI R19, 3
+			BREQ MAIN
+			CPI R19, 4
+			BREQ MAIN
+
 			;RJMP RST_CNT_M				; Activar para correr fecha mas rapido
 			LDS R21, SEGS
 			CPI R21, 59					; Verificar si segundos ya es 59
@@ -716,19 +746,117 @@ alternador_fecha:
 ; =============================
 
 alternador_config_hora:
-/*
-STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
-STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
-STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
-STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
-*/
-	LDS R21, UMIN			; Tomar unidad minuto actual  
-	STS S_UMIN, R21			; Guardar en unidad minuto config
-	LDS R21, DMIN			; Tomar decena minuto actual
-	STS S_DMIN, R21			; Guardar en unidad 
 
-	;aqui me quedé
+	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+	BREQ SHW_DISP_0_CONF
+	RJMP nextdisp7
+	SHW_DISP_0_CONF:
+		LDI R18, 0x01				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
 
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		CBI PORTB, 3				; Habilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_UMIN
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_hora
+nextdisp7:
+	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+	BREQ SHW_DISP_1_CONF
+	RJMP nextdisp8
+	SHW_DISP_1_CONF:
+		LDI R18, 0x02				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		CBI PORTB, 2				; Habilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_DMIN
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_hora
+nextdisp8:
+	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+	BREQ SHW_DISP_2_CONF
+	RJMP nextdisp9
+	SHW_DISP_2_CONF:
+		LDI R18, 0x03				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		CBI PORTB, 1				; Habilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_UHOR
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D	
+
+		CPI R25, 1					; Condicionales para el punto
+		BREQ DOT_ON_CONF
+		CPI R25, 0
+		BREQ DOT_OFF_CONF
+		RJMP alternador_config_hora
+
+		DOT_ON_CONF:
+			SBI PORTD, 7
+			RJMP MAIN
+		DOT_OFF_CONF:
+			CBI PORTD, 7
+			RJMP MAIN
+
+nextdisp9:
+	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+	BREQ SHW_DISP_3_CONF
+	RJMP alternador_config_hora
+
+	SHW_DISP_3_CONF:
+		LDI R18, 0x00				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		CBI PORTB, 0				; Habilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_DHOR
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_hora
+
+	RJMP alternador_config_hora
 	
 ; =============================
 ; Alternador config de fecha
@@ -736,11 +864,236 @@ STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
 
 alternador_config_fecha:
 
+	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+	BREQ SHW_DISP_0_CONF_DATE
+	RJMP nextdisp10
+	SHW_DISP_0_CONF_DATE:
+		LDI R18, 0x01				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		CBI PORTB, 3				; Habilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_UMON
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_fecha
+nextdisp10:
+	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+	BREQ SHW_DISP_1_CONF_DATE
+	RJMP nextdisp11
+	SHW_DISP_1_CONF_DATE:
+		LDI R18, 0x02				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		CBI PORTB, 2				; Habilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_DMON
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_fecha
+nextdisp11:
+	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+	BREQ SHW_DISP_2_CONF_DATE
+	RJMP nextdisp12
+	SHW_DISP_2_CONF_DATE:
+		LDI R18, 0x03				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		CBI PORTB, 1				; Habilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_UDAT
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D	
+
+		CPI R25, 1					; Condicionales para el punto
+		BREQ DOT_ON_CONF_DATE
+		CPI R25, 0
+		BREQ DOT_OFF_CONF_DATE
+		RJMP alternador_config_fecha
+
+		DOT_ON_CONF_DATE:
+			SBI PORTD, 7
+			RJMP MAIN
+		DOT_OFF_CONF_DATE:
+			CBI PORTD, 7
+			RJMP MAIN
+
+nextdisp12:
+	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+	BREQ SHW_DISP_3_CONF_DATE
+	RJMP alternador_config_fecha
+
+	SHW_DISP_3_CONF_DATE:
+		LDI R18, 0x00				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		CBI PORTB, 0				; Habilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, S_DDAT
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_config_fecha
+
+
+	RJMP alternador_config_fecha
+
 ; =============================
 ; Alternador alarma
 ; =============================
 
 alternador_alarma:
+
+	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+	BREQ SHW_DISP_0_ALARM
+	RJMP nextdisp13
+	SHW_DISP_0_ALARM:
+		LDI R18, 0x01				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		CBI PORTB, 3				; Habilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, UMALARM
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_alarma
+nextdisp13:
+	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+	BREQ SHW_DISP_1_ALARM
+	RJMP nextdisp14
+	SHW_DISP_1_ALARM:
+		LDI R18, 0x02				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		CBI PORTB, 2				; Habilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, DMALARM
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_alarma
+nextdisp14:
+	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+	BREQ SHW_DISP_2_ALARM
+	RJMP nextdisp15
+	SHW_DISP_2_ALARM:
+		LDI R18, 0x03				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		SBI PORTB, 0				; Deshabilitar display 3
+		CBI PORTB, 1				; Habilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, UHALARM
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D	
+
+		CPI R25, 1					; Condicionales para el punto
+		BREQ DOT_ON_ALARM
+		CPI R25, 0
+		BREQ DOT_OFF_ALARM
+
+		RJMP alternador_alarma
+
+		DOT_ON_ALARM:
+			SBI PORTD, 7
+			RJMP MAIN
+		DOT_OFF_ALARM:
+			CBI PORTD, 7
+			RJMP MAIN
+
+nextdisp15:
+	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+	BREQ SHW_DISP_3_ALARM
+	RJMP alternador_alarma
+
+	SHW_DISP_3_ALARM:
+		LDI R18, 0x00				; Alternar
+		LDI R16, 0x00
+		OUT PORTD, R16				; Eliminar ghost de PORTD
+
+		CBI PORTB, 0				; Habilitar display 3
+		SBI PORTB, 1				; Deshabilitar display 2
+		SBI PORTB, 2				; Deshabilitar display 1
+		SBI PORTB, 3				; Deshabilitar display 0
+
+		LDI ZL, LOW(TRADUCTOR << 1)	;
+		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+
+		LDS R21, DHALARM
+		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+		LPM R17, Z					; Cargar pointer en registro
+		OUT PORTD, R17				; Mostrar registro en puerto D
+
+		RJMP alternador_alarma
+
+
+	RJMP alternador_alarma
 
 ; =============================================
 ; Contador de overflow para 7 segmentos, 20ms
@@ -759,4 +1112,118 @@ CNT_OVF:
 ; Interrupciones de botón
 ; =============================================
 
-;BTN_INT:
+INT_PCINT:
+
+    SBIS PINC, 0            ; Verificar si PC0 está cleared
+    RJMP BUT_STATE			; Si no, ejecutar funcion de boton estado
+	SBIS PINC, 1
+	RETI
+	SBIS PINC, 2
+	RETI
+	SBIS PINC, 3
+	RETI
+
+	RETI
+
+	BUT_STATE:
+
+		CPI R19, 0				; Verificar estado del estado
+		BREQ STATE_1			; si es 0, saltar a estado 1
+		RJMP cont1
+
+		STATE_1:					; Estado mostrar fecha
+			LDI R19, 1
+
+			RETI 
+
+		cont1:
+		CPI R19, 1
+		BREQ STATE_2			; si es 1, saltar a estado 2
+		RJMP cont2
+
+		STATE_2:					; Estado config hora
+			LDI R19, 2
+
+			; segundos tomar de actual y mover a config
+			LDS R21, SEGS
+			STS S_SEGS, R21
+
+			; hora tomar de actual y mover a config
+			LDS R21, UMIN			; Tomar unidad minuto actual  
+			STS S_UMIN, R21			; Guardar en config
+			LDS R21, DMIN			; Tomar decena minuto actual
+			STS S_DMIN, R21			; Guardar en config 
+			LDS R21, UHOR			; Tomar unidad hora actual
+			STS S_UHOR, R21			; Guardar en config
+			LDS R21, DHOR			; Tomar decena hora actual
+			STS S_DHOR, R21			; Guardar en config
+
+			; fecha tomar de actual y mover a config
+			LDS R21, UMON			; Tomar unidad mes actual  
+			STS S_UMON, R21			; Guardar en config
+			LDS R21, DMON			; Tomar decena mes actual
+			STS S_DMON, R21			; Guardar en config 
+			LDS R21, UDAT			; Tomar unidad dia actual
+			STS S_UDAT, R21			; Guardar en config
+			LDS R21, DDAT			; Tomar decena dia actual
+			STS S_DDAT, R21			; Guardar en config
+
+			RETI
+
+		cont2:
+		CPI R19, 2
+		BREQ STATE_3			; si es 2, saltar a estado 3
+		RJMP cont3
+
+		STATE_3:					; Estado config fecha
+			LDI R19, 3
+
+			RETI
+
+		cont3:
+		CPI R19, 3
+		BREQ STATE_4			; si es 3, saltar a estado 4
+		RJMP cont4
+
+		STATE_4:					; Estado config alarma
+			LDI R19, 4
+
+			RETI
+
+		cont4:
+		CPI R19, 4
+		BREQ STATE_0			; si es 4, saltar a estado 0
+		RJMP MAIN
+		
+
+		STATE_0:					; Estado mostrar hora
+			LDI R19, 0
+
+			; segundos tomar de config y mover a actual
+			LDS R21, S_SEGS
+			STS SEGS, R21
+			LDI R20, 0x00
+
+			; fecha tomar de config y mover a actual
+			LDS R21, S_UMON			; Tomar unidad mes config  
+			STS UMON, R21			; Guardar en actual
+			LDS R21, S_DMON			; Tomar decena mes config
+			STS DMON, R21			; Guardar en actual 
+			LDS R21, S_UDAT			; Tomar unidad dia config
+			STS UDAT, R21			; Guardar en actual
+			LDS R21, S_DDAT			; Tomar decena dia config
+			STS DDAT, R21			; Guardar en actual
+
+			; hora tomar de config y mover a actual
+			LDS R21, S_UMIN			; Tomar unidad minuto config  
+			STS UMIN, R21			; Guardar en actual
+			LDS R21, S_DMIN			; Tomar decena minuto config
+			STS DMIN, R21			; Guardar en actual 
+			LDS R21, S_UHOR			; Tomar unidad hora config
+			STS UHOR, R21			; Guardar en actual
+			LDS R21, S_DHOR			; Tomar decena hora config
+			STS DHOR, R21			; Guardar en actual
+
+			RETI
+
+		

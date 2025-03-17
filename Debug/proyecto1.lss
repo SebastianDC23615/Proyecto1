@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm Sat Mar 15 17:09:11 2025
+AVRASM ver. 2.2.8  C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm Sun Mar 16 22:23:08 2025
 
 [builtin](2): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Including file 'C:/Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -1055,22 +1055,31 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 000107                           UDAT: .byte 1			; Asignar a RAM unidades de dia
 000108                           DDAT: .byte 1			; Asignar a RAM decenas de dia
                                  
-000109                           S_UMIN: .byte 1			; Asignar a RAM config de hora
-00010a                           S_DMIN: .byte 1			; Asignar a RAM config de hora
-00010b                           S_UHOR: .byte 1			; Asignar a RAM config de hora
-00010c                           S_DHOR: .byte 1			; Asignar a RAM config de hora
+000109                           S_SEGS: .byte 1			; Asigmar a RAM config de segundos
+00010a                           S_UMIN: .byte 1			; Asignar a RAM config de hora
+00010b                           S_DMIN: .byte 1			; Asignar a RAM config de hora
+00010c                           S_UHOR: .byte 1			; Asignar a RAM config de hora
+00010d                           S_DHOR: .byte 1			; Asignar a RAM config de hora
                                  
-00010d                           UMALARM: .byte 1		; Asignar a RAM unidades de minuto para alarma
-00010e                           DMALARM: .byte 1		; Asignar a RAM decenas de minuto para alarma
-00010f                           UHALARM: .byte 1		; Asignar a RAM unidades de hora para alarma
-000110                           DHALARM: .byte 1		; Asignar a RAM decenas de hora para alarma
+00010e                           S_UMON: .byte 1			; Asignar a RAM config de fecha
+00010f                           S_DMON: .byte 1			; Asignar a RAM config de fecha
+000110                           S_UDAT: .byte 1			; Asignar a RAM config de fecha
+000111                           S_DDAT: .byte 1			; Asignar a RAM config de fecha
+                                 
+000112                           UMALARM: .byte 1		; Asignar a RAM unidades de minuto para alarma
+000113                           DMALARM: .byte 1		; Asignar a RAM decenas de minuto para alarma
+000114                           UHALARM: .byte 1		; Asignar a RAM unidades de hora para alarma
+000115                           DHALARM: .byte 1		; Asignar a RAM decenas de hora para alarma
                                  
                                  .cseg
                                  .org 0x0000
 000000 940c 0022                 JMP START
                                  
+                                 .org 0x0008		; Vector de interrupción para PORTC
+000008 940c 034b                 JMP INT_PCINT
+                                 
                                  .org 0x0020		; Vector de interrupción para overflow
-000020 940c 022d                 JMP CNT_OVF
+000020 940c 0346                 JMP CNT_OVF
                                  
                                  START:
                                  	; =============================================
@@ -1106,10 +1115,10 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 000030 e000                      		LDI R16, 0x00				;
 000031 b905                      		OUT PORTB, R16				; Setear como salidas
                                  
-000032 e007                      		LDI R16, 0x07				;
+000032 e00f                      		LDI R16, 0x0F				;
 000033 b907                      		OUT DDRC, R16				; Puerto C como entrada
-000034 e007                      		LDI R16, 0x07				;
-000035 b908                      		OUT PORTC, R16				; Habilitar pullups en PC0, PC1 y PC2
+000034 e00f                      		LDI R16, 0x0F				;
+000035 b908                      		OUT PORTC, R16				; Habilitar pullups en PC0, PC1, PC2 y PC3
                                  
                                  		; =========================================
                                  		; Interrupciones
@@ -1119,7 +1128,7 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 000037 9300 0068                 		STS PCICR, R16						;
                                  
 000039 e00f                      		LDI R16, (1<<PCINT8) | (1<<PCINT9) | (1<<PCINT10) | (1<<PCINT11)
-00003a 9300 006b                 		STS PCMSK0, R16						; Habilitar interrupciones en PC0, PC1, PC2 y PC3
+00003a 9300 006c                 		STS PCMSK1, R16						; Habilitar interrupciones en PC0, PC1, PC2 y PC3
                                  
 00003c e001                      		LDI R16, (1 << TOIE0)				; Habilitar interrupciones por overflow de timer
 00003d 9300 006e                 		STS TIMSK0, R16	
@@ -1187,12 +1196,25 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
 00006d e050                      		LDI R21, 0x00
 00006e 9350 0108                 		STS DDAT, R21				; Cargar inicial a decenas dia
                                  
-000070 9350 0109                 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
-000072 9350 010a                 		STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
-000074 9350 010b                 		STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
-000076 9350 010c                 		STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
+000070 9350 0109                 		STS S_SEGS, R21				; Valor a guardar a segundos config 
+000072 9350 010a                 		STS S_UMIN, R21				; Valor a guardar a unidades minutos config hora
+000074 9350 010b                 		STS S_DMIN, R21				; Valor a guardar a decenas minutos config hora
+000076 9350 010c                 		STS S_UHOR, R21				; Valor a guardar a unidades horas config hora
+000078 9350 010d                 		STS S_DHOR, R21				; Valor a guardar a decenas horas config hora
                                  
-000078 9478                      		SEI							; Habilitar interrupciones
+00007a e051                      		LDI R21, 0x01
+00007b 9350 010e                 		STS S_UMON, R21				; Valor a guardar a unidades mes config hora
+00007d 9350 0110                 		STS S_UDAT, R21				; Valor a guardar a unidades dia config hora
+00007f e050                      		LDI R21, 0x00
+000080 9350 010f                 		STS S_DMON, R21				; Valor a guardar a decenas mes config hora
+000082 9350 0111                 		STS S_DDAT, R21				; Valor a guardar a decenas dia config hora
+                                 
+000084 9350 0112                 		STS UMALARM, R21			; Valor a guardar unidades de minuto alarma
+000086 9350 0113                 		STS DMALARM, R21			; Valor a guardar decenas de minuto alarma
+000088 9350 0114                 		STS UHALARM, R21			; Valor a guardar unidades de hora alarma
+00008a 9350 0115                 		STS DHALARM, R21			; Valor a guardar decenas de hora alarma
+                                 
+00008c 9478                      		SEI							; Habilitar interrupciones
                                  
                                  	; =============================================
                                  	; Bucle Principal
@@ -1200,138 +1222,146 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
                                  
                                  	MAIN:
                                  		
-000079 3342                      		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
-00007a f0c1                      		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
-00007b 3040                      		CPI R20, 0						; Condicionales para el punto
-00007c f091                      		BREQ DT_N
-00007d 3149                      		CPI R20, 25
-00007e f091                      		BREQ DT_F
+00008d 3342                      		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
+00008e f0c1                      		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
+00008f 3040                      		CPI R20, 0						; Condicionales para el punto
+000090 f091                      		BREQ DT_N
+000091 3149                      		CPI R20, 25
+000092 f091                      		BREQ DT_F
                                  
                                  		ver_mode:
-00007f 3030                      		CPI R19, 0
-000080 f049                      		BREQ alt_hora
-000081 3031                      		CPI R19, 1
-000082 f041                      		BREQ alt_fecha
-000083 3032                      		CPI R19, 2
-000084 f039                      		BREQ alt_hora_config
-000085 3033                      		CPI R19, 3
-000086 f031                      		BREQ alt_fecha_config
-000087 3034                      		CPI R19, 4
-000088 f029                      		BREQ alt_alarm
-000089 cfef                      		RJMP MAIN
+000093 3030                      		CPI R19, 0
+000094 f049                      		BREQ alt_hora
+000095 3031                      		CPI R19, 1
+000096 f041                      		BREQ alt_fecha
+000097 3032                      		CPI R19, 2
+000098 f039                      		BREQ alt_hora_config
+000099 3033                      		CPI R19, 3
+00009a f031                      		BREQ alt_fecha_config
+00009b 3034                      		CPI R19, 4
+00009c f029                      		BREQ alt_alarm
+00009d cfef                      		RJMP MAIN
                                  
                                  		alt_hora:
-00008a c0f9                      			RJMP alternador_hora
+00009e c0ff                      			RJMP alternador_hora
                                  		alt_fecha:
-00008b c14c                      			RJMP alternador_fecha
+00009f c152                      			RJMP alternador_fecha
                                  		alt_hora_config:
-00008c cfec                      			RJMP MAIN
+0000a0 c1a6                      			RJMP alternador_config_hora
                                  		alt_fecha_config:
-00008d cfeb                      			RJMP MAIN
+0000a1 c1fa                      			RJMP alternador_config_fecha
                                  		alt_alarm:
-00008e cfea                      			RJMP MAIN
+0000a2 c24e                      			RJMP alternador_alarma
                                  
                                  
                                  		DT_N:
-00008f e091                      			LDI R25, 1
-000090 cfee                      			RJMP ver_mode
+0000a3 e091                      			LDI R25, 1
+0000a4 cfee                      			RJMP ver_mode
                                  		DT_F:
-000091 e090                      			LDI R25, 0
-000092 cfec                      			RJMP ver_mode
+0000a5 e090                      			LDI R25, 0
+0000a6 cfec                      			RJMP ver_mode
                                  
                                  		; =========================================
                                  		; Condicionales para reloj 24 hrs
                                  		; =========================================
                                  
                                  		RST_CCNT:
-000093 e040                      			LDI R20, 0x00				; Reiniciar contador de contador
-                                 			;RJMP RST_CNT_M				; Activar para correr fecha mas rapido
-000094 9150 0100                 			LDS R21, SEGS
-000096 335b                      			CPI R21, 59					; Verificar si segundos ya es 59
-000097 f021                      			BREQ RST_CNT_S				; Si ya es 59, resetear counter, sino saltar 
+0000a7 e040                      			LDI R20, 0x00				; Reiniciar contador de contador
                                  
-000098 9553                      			INC R21						; Incrementar contador segundos
-000099 9350 0100                 			STS SEGS, R21
+0000a8 3032                      			CPI R19, 2
+0000a9 f319                      			BREQ MAIN
+0000aa 3033                      			CPI R19, 3
+0000ab f309                      			BREQ MAIN
+0000ac 3034                      			CPI R19, 4
+0000ad f2f9                      			BREQ MAIN
+                                 
+                                 			;RJMP RST_CNT_M				; Activar para correr fecha mas rapido
+0000ae 9150 0100                 			LDS R21, SEGS
+0000b0 335b                      			CPI R21, 59					; Verificar si segundos ya es 59
+0000b1 f021                      			BREQ RST_CNT_S				; Si ya es 59, resetear counter, sino saltar 
+                                 
+0000b2 9553                      			INC R21						; Incrementar contador segundos
+0000b3 9350 0100                 			STS SEGS, R21
                                  			
-00009b cfdd                      			RJMP MAIN
+0000b5 cfd7                      			RJMP MAIN
                                  
                                  			RST_CNT_S:
                                  				
-00009c e050                      				LDI R21, 0x00
-00009d 9350 0100                 				STS SEGS, R21			; Reiniciar unidades de segundos
+0000b6 e050                      				LDI R21, 0x00
+0000b7 9350 0100                 				STS SEGS, R21			; Reiniciar unidades de segundos
                                  
-00009f 9150 0101                 				LDS R21, UMIN			; Cargar de RAM
-0000a1 3059                      				CPI R21, 0x09			; Verificar si unidades minutos ya es 9
-0000a2 f021                      				BREQ RST_CNT_U_S		; Si ya es 9, resetear, sino saltar
+0000b9 9150 0101                 				LDS R21, UMIN			; Cargar de RAM
+0000bb 3059                      				CPI R21, 0x09			; Verificar si unidades minutos ya es 9
+0000bc f021                      				BREQ RST_CNT_U_S		; Si ya es 9, resetear, sino saltar
                                  
-0000a3 9553                      				INC R21					; Incrementar unidades minutos
-0000a4 9350 0101                 				STS UMIN, R21			; Cargar a RAM
+0000bd 9553                      				INC R21					; Incrementar unidades minutos
+0000be 9350 0101                 				STS UMIN, R21			; Cargar a RAM
                                  
-0000a6 cfd2                      				RJMP MAIN
+0000c0 cfcc                      				RJMP MAIN
                                  
                                  				RST_CNT_U_S:
                                  
-0000a7 e050                      					LDI R21, 0x00			
-0000a8 9350 0100                 					STS SEGS, R21			; Reiniciar contador segundos
-0000aa 9350 0101                 					STS UMIN, R21			; Reiniciar contador unidades minutos
+0000c1 e050                      					LDI R21, 0x00			
+0000c2 9350 0100                 					STS SEGS, R21			; Reiniciar contador segundos
+0000c4 9350 0101                 					STS UMIN, R21			; Reiniciar contador unidades minutos
                                  
-0000ac 9150 0102                 					LDS R21, DMIN			; Cargar de RAM
-0000ae 3055                      					CPI R21, 0x05			; Verificar decenas si ya es 5
-0000af f021                      					BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
+0000c6 9150 0102                 					LDS R21, DMIN			; Cargar de RAM
+0000c8 3055                      					CPI R21, 0x05			; Verificar decenas si ya es 5
+0000c9 f021                      					BREQ RST_CNT_D_S		; Si ya es 6, resetear counter, sino saltar
                                  
-0000b0 9553                      					INC R21					; Aumentar contador decenas segundos
-0000b1 9350 0102                 					STS DMIN, R21			; Cargar a RAM
+0000ca 9553                      					INC R21					; Aumentar contador decenas segundos
+0000cb 9350 0102                 					STS DMIN, R21			; Cargar a RAM
                                  
-0000b3 cfc5                      					RJMP MAIN
+0000cd cfbf                      					RJMP MAIN
                                  
                                  					RST_CNT_D_S:
-0000b4 e050                      						LDI R21, 0x00		
-0000b5 9350 0100                 						STS SEGS, R21			; Reiniciar contador segundos
-0000b7 9350 0101                 						STS UMIN, R21			; Reiniciar contador unidades minutos
-0000b9 9350 0102                 						STS DMIN, R21			; Reiniciar contador decenas minutos
+0000ce e050                      						LDI R21, 0x00		
+0000cf 9350 0100                 						STS SEGS, R21			; Reiniciar contador segundos
+0000d1 9350 0101                 						STS UMIN, R21			; Reiniciar contador unidades minutos
+0000d3 9350 0102                 						STS DMIN, R21			; Reiniciar contador decenas minutos
                                  
-0000bb 9150 0103                 						LDS R21, UHOR			; Cargar de RAM
-0000bd 3053                      						CPI R21, 0x03			; Verificar si unidades minutos ya es 3
-0000be f0b9                      						BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
+0000d5 9150 0103                 						LDS R21, UHOR			; Cargar de RAM
+0000d7 3053                      						CPI R21, 0x03			; Verificar si unidades minutos ya es 3
+0000d8 f0b9                      						BREQ RST_CNT_D_M		; Si ya es 3, verificar si decenas ya es 2, sino saltar
                                  						continue1:
-0000bf 9150 0103                 						LDS R21, UHOR
-0000c1 3059                      						CPI R21, 0x09			; Verificar si unidades minutos ya es 9
-0000c2 f021                      						BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
+0000d9 9150 0103                 						LDS R21, UHOR
+0000db 3059                      						CPI R21, 0x09			; Verificar si unidades minutos ya es 9
+0000dc f021                      						BREQ RST_CNT_U_M		; Si ya es 9, resetear counter, sino saltar
                                  
-0000c3 9553                      						INC R21					; Aumentar unidades minutos
-0000c4 9350 0103                 						STS UHOR, R21			; Cargar a RAM
+0000dd 9553                      						INC R21					; Aumentar unidades minutos
+0000de 9350 0103                 						STS UHOR, R21			; Cargar a RAM
                                  
-0000c6 cfb2                      						RJMP MAIN
+0000e0 cfac                      						RJMP MAIN
                                  
                                  						RST_CNT_U_M:
-0000c7 e050                      							LDI R21, 0x00
-0000c8 9350 0100                 							STS SEGS, R21			; Reiniciar contador segundos
-0000ca 9350 0101                 							STS UMIN, R21			; Reiniciar contador unidades minutos
-0000cc 9350 0102                 							STS DMIN, R21			; Reiniciar contador decenas minutos
-0000ce 9350 0103                 							STS UHOR, R21			; Reiniciar contador unidades horas				
+0000e1 e050                      							LDI R21, 0x00
+0000e2 9350 0100                 							STS SEGS, R21			; Reiniciar contador segundos
+0000e4 9350 0101                 							STS UMIN, R21			; Reiniciar contador unidades minutos
+0000e6 9350 0102                 							STS DMIN, R21			; Reiniciar contador decenas minutos
+0000e8 9350 0103                 							STS UHOR, R21			; Reiniciar contador unidades horas				
                                  
-0000d0 9150 0104                 							LDS R21, DHOR			; Cargar de RAM
-0000d2 9553                      							INC R21					; Incrementar contador decenas horas
-0000d3 9350 0104                 							STS DHOR, R21			; Cargar a RAM
+0000ea 9150 0104                 							LDS R21, DHOR			; Cargar de RAM
+0000ec 9553                      							INC R21					; Incrementar contador decenas horas
+0000ed 9350 0104                 							STS DHOR, R21			; Cargar a RAM
                                  
-0000d5 cfa3                      							RJMP MAIN
+0000ef cf9d                      							RJMP MAIN
                                  
                                  						RST_CNT_D_M:
                                  							
-0000d6 9150 0104                 							LDS R21, DHOR
-0000d8 3052                      							CPI R21, 0x02			; Verificar si ya son 24 horas
-0000d9 f009                      							BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
-0000da cfe4                      							RJMP continue1			
+0000f0 9150 0104                 							LDS R21, DHOR
+0000f2 3052                      							CPI R21, 0x02			; Verificar si ya son 24 horas
+0000f3 f009                      							BREQ RST_CNT_M			; Si ya son, resetear todo, sino saltar
+0000f4 cfe4                      							RJMP continue1			
                                  
                                  							RST_CNT_M:
-0000db e050                      								LDI R21, 0x00			
-0000dc 9350 0100                 								STS SEGS, R21			; Reiniciar contador segundos
-0000de 9350 0101                 								STS UMIN, R21			; Reiniciar contador unidades minutos
-0000e0 9350 0102                 								STS DMIN, R21			; Reiniciar contador decenas minutos
-0000e2 9350 0103                 								STS UHOR, R21			; Reiniciar contador unidades horas	
-0000e4 9350 0104                 								STS DHOR, R21			; Reiniciar contador decenas horas	
+0000f5 e050                      								LDI R21, 0x00			
+0000f6 9350 0100                 								STS SEGS, R21			; Reiniciar contador segundos
+0000f8 9350 0101                 								STS UMIN, R21			; Reiniciar contador unidades minutos
+0000fa 9350 0102                 								STS DMIN, R21			; Reiniciar contador decenas minutos
+0000fc 9350 0103                 								STS UHOR, R21			; Reiniciar contador unidades horas	
+0000fe 9350 0104                 								STS DHOR, R21			; Reiniciar contador decenas horas	
                                  
-0000e6 c000                      								RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
+000100 c000                      								RJMP COMP_DATE			; Día completo, iniciar condicionales de fecha
                                  		; ==================================
                                  		; Condicionales Fecha
                                  		; ==================================
@@ -1340,181 +1370,181 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
                                  		
                                  		;----final 28----
                                  		fin_28:
-0000e7 9150 0107                 			LDS R21, UDAT			; Cargar de RAM
-0000e9 3058                      			CPI R21, 0x08			; Verificar si unidad es 8
-0000ea f009                      			BREQ VER_28				; Si si, verificar si es 2
-0000eb c010                      			RJMP fin_30
+000101 9150 0107                 			LDS R21, UDAT			; Cargar de RAM
+000103 3058                      			CPI R21, 0x08			; Verificar si unidad es 8
+000104 f009                      			BREQ VER_28				; Si si, verificar si es 2
+000105 c010                      			RJMP fin_30
                                  
                                  			VER_28:
-0000ec 9150 0108                 				LDS R21, DDAT
-0000ee 3052                      				CPI R21, 0x02			; Verificar si decena es 2 para 28
-0000ef f009                      				BREQ VER_FEB_D			; Si si, verificar febrero
-0000f0 c00b                      				RJMP fin_30
+000106 9150 0108                 				LDS R21, DDAT
+000108 3052                      				CPI R21, 0x02			; Verificar si decena es 2 para 28
+000109 f009                      				BREQ VER_FEB_D			; Si si, verificar febrero
+00010a c00b                      				RJMP fin_30
                                  
                                  				VER_FEB_D:
-0000f1 9150 0106                 					LDS R21, DMON
-0000f3 3050                      					CPI R21, 0x00			; Verificar si decena es 0
-0000f4 f009                      					BREQ VER_FEB_U			; Si si, verificar si es 2
-0000f5 c006                      					RJMP fin_30
+00010b 9150 0106                 					LDS R21, DMON
+00010d 3050                      					CPI R21, 0x00			; Verificar si decena es 0
+00010e f009                      					BREQ VER_FEB_U			; Si si, verificar si es 2
+00010f c006                      					RJMP fin_30
                                  					
                                  					VER_FEB_U:
-0000f6 9150 0105                 						LDS R21, UMON
-0000f8 3052                      						CPI R21, 0x02			; Verificar si es 02
-0000f9 f009                      						BREQ RST_DAY_FEB		; Si si, resetear counter y aumentar a marzo
-0000fa c001                      						RJMP fin_30
+000110 9150 0105                 						LDS R21, UMON
+000112 3052                      						CPI R21, 0x02			; Verificar si es 02
+000113 f009                      						BREQ RST_DAY_FEB		; Si si, resetear counter y aumentar a marzo
+000114 c001                      						RJMP fin_30
                                  						RST_DAY_FEB:
-0000fb c053                      							RJMP INC_MON
+000115 c053                      							RJMP INC_MON
                                  		;----final 30----
                                  		fin_30:
-0000fc 9150 0107                 			LDS R21, UDAT
-0000fe 3050                      			CPI R21, 0x00			; Verificar si unidad dia es 0
-0000ff f009                      			BREQ VER_30				; si si, verificar decena
-000100 c018                      			RJMP fin_31
+000116 9150 0107                 			LDS R21, UDAT
+000118 3050                      			CPI R21, 0x00			; Verificar si unidad dia es 0
+000119 f009                      			BREQ VER_30				; si si, verificar decena
+00011a c018                      			RJMP fin_31
                                  			
                                  			VER_30:
-000101 9150 0108                 				LDS R21, DDAT
-000103 3053                      				CPI R21, 0x03			; Verificar si decena es 3
-000104 f009                      				BREQ VER_30_INC			; Si si, verificar que mes es
-000105 c013                      				RJMP fin_31
+00011b 9150 0108                 				LDS R21, DDAT
+00011d 3053                      				CPI R21, 0x03			; Verificar si decena es 3
+00011e f009                      				BREQ VER_30_INC			; Si si, verificar que mes es
+00011f c013                      				RJMP fin_31
                                  
                                  				VER_30_INC:
-000106 9150 0106                 					LDS R21, DMON
-000108 3051                      					CPI R21, 0x01			; Verificar si decena mes es 1
-000109 f009                      					BREQ VER_NOV			; Si si, verificar si es noviembre
-00010a c004                      					RJMP continue3
+000120 9150 0106                 					LDS R21, DMON
+000122 3051                      					CPI R21, 0x01			; Verificar si decena mes es 1
+000123 f009                      					BREQ VER_NOV			; Si si, verificar si es noviembre
+000124 c004                      					RJMP continue3
                                  
                                  					VER_NOV:
-00010b 9150 0105                 						LDS R21, UMON
-00010d 3051                      						CPI R21, 0x01			; Verificar si unidad es 1
-00010e f049                      						BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+000125 9150 0105                 						LDS R21, UMON
+000127 3051                      						CPI R21, 0x01			; Verificar si unidad es 1
+000128 f049                      						BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
                                  
                                  					continue3:
-00010f 9150 0105                 					LDS R21, UMON
-000111 3054                      					CPI R21, 0x04			; Verificar si es abril
-000112 f029                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
-000113 3056                      					CPI R21, 0x06			; Verificar si es junio
-000114 f019                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
-000115 3059                      					CPI R21, 0x09			; Verificar si es septiembre
-000116 f009                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
-000117 c001                      					RJMP fin_31
+000129 9150 0105                 					LDS R21, UMON
+00012b 3054                      					CPI R21, 0x04			; Verificar si es abril
+00012c f029                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+00012d 3056                      					CPI R21, 0x06			; Verificar si es junio
+00012e f019                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+00012f 3059                      					CPI R21, 0x09			; Verificar si es septiembre
+000130 f009                      					BREQ RST_DAY_30			; Si si, reiniciar dia y aumentar mes
+000131 c001                      					RJMP fin_31
                                  
                                  					RST_DAY_30:
-000118 c036                      						RJMP INC_MON
+000132 c036                      						RJMP INC_MON
                                  					
                                  
                                  
                                  		;----final 31----
                                  		fin_31:
-000119 9150 0107                 			LDS R21, UDAT
-00011b 3051                      			CPI R21, 0x01			; Verificar si unidad dia es 1
-00011c f009                      			BREQ VER_31				; Si si, verificar decena dia
-00011d c01e                      			RJMP fin_9
+000133 9150 0107                 			LDS R21, UDAT
+000135 3051                      			CPI R21, 0x01			; Verificar si unidad dia es 1
+000136 f009                      			BREQ VER_31				; Si si, verificar decena dia
+000137 c01e                      			RJMP fin_9
                                  
                                  			VER_31:
-00011e 9150 0108                 				LDS R21, DDAT
-000120 3053                      				CPI R21, 0x03			; Verificar si decena dia es 3
-000121 f009                      				BREQ VER_31_INC			; Si si, verificar que mes
-000122 c019                      				RJMP fin_9
+000138 9150 0108                 				LDS R21, DDAT
+00013a 3053                      				CPI R21, 0x03			; Verificar si decena dia es 3
+00013b f009                      				BREQ VER_31_INC			; Si si, verificar que mes
+00013c c019                      				RJMP fin_9
                                  
                                  				VER_31_INC:
-000123 9150 0106                 					LDS R21, DMON
-000125 3051                      					CPI R21, 0x01			; Verificar si decena mes es 1
-000126 f009                      					BREQ VER_OCTDIC			; Si si, verificar si es octubre o diciembre
-000127 c006                      					RJMP continue4
+00013d 9150 0106                 					LDS R21, DMON
+00013f 3051                      					CPI R21, 0x01			; Verificar si decena mes es 1
+000140 f009                      					BREQ VER_OCTDIC			; Si si, verificar si es octubre o diciembre
+000141 c006                      					RJMP continue4
                                  
                                  					VER_OCTDIC:
-000128 9150 0105                 						LDS R21, UMON
-00012a 3050                      						CPI R21, 0x00			; Verificar si es octubre
-00012b f079                      						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-00012c 3052                      						CPI R21, 0x02			; Verificar si es diciembre
-00012d f069                      						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+000142 9150 0105                 						LDS R21, UMON
+000144 3050                      						CPI R21, 0x00			; Verificar si es octubre
+000145 f079                      						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+000146 3052                      						CPI R21, 0x02			; Verificar si es diciembre
+000147 f069                      						BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
                                  
                                  					continue4:
-00012e 9150 0105                 					LDS R21, UMON
-000130 3051                      					CPI R21, 0x01			; Verificar si es enero
-000131 f049                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-000132 3053                      					CPI R21, 0x03			; Verificar si es marzo
-000133 f039                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-000134 3055                      					CPI R21, 0x05			; Verificar si es mayo
-000135 f029                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-000136 3057                      					CPI R21, 0x07			; Verificar si es julio
-000137 f019                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-000138 3058                      					CPI R21, 0x08			; Verificar si es agosto
-000139 f009                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
-00013a c001                      					RJMP fin_9
+000148 9150 0105                 					LDS R21, UMON
+00014a 3051                      					CPI R21, 0x01			; Verificar si es enero
+00014b f049                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+00014c 3053                      					CPI R21, 0x03			; Verificar si es marzo
+00014d f039                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+00014e 3055                      					CPI R21, 0x05			; Verificar si es mayo
+00014f f029                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+000150 3057                      					CPI R21, 0x07			; Verificar si es julio
+000151 f019                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+000152 3058                      					CPI R21, 0x08			; Verificar si es agosto
+000153 f009                      					BREQ RST_DAY_31			; Si si, reiniciar dia y aumentar mes
+000154 c001                      					RJMP fin_9
                                  
                                  					RST_DAY_31:
-00013b c013                      						RJMP INC_MON
+000155 c013                      						RJMP INC_MON
                                  
                                  		;----inc a dia cuando unidad es 9----
                                  		fin_9:
-00013c 9150 0107                 			LDS R21, UDAT
-00013e 3059                      			CPI R21, 0x09			; Verificar si unidad es 9
-00013f f031                      			BREQ INC_DAY_D			; Si si, incrementar decena, sino saltar
-000140 9150 0107                 			LDS R21, UDAT
-000142 9553                      			INC R21					; Incrementar unidad dia
-000143 9350 0107                 			STS UDAT, R21
-000145 cf33                      			RJMP MAIN
+000156 9150 0107                 			LDS R21, UDAT
+000158 3059                      			CPI R21, 0x09			; Verificar si unidad es 9
+000159 f031                      			BREQ INC_DAY_D			; Si si, incrementar decena, sino saltar
+00015a 9150 0107                 			LDS R21, UDAT
+00015c 9553                      			INC R21					; Incrementar unidad dia
+00015d 9350 0107                 			STS UDAT, R21
+00015f cf2d                      			RJMP MAIN
                                  
                                  			INC_DAY_D:
-000146 e050                      				LDI R21, 0x00
-000147 9350 0107                 				STS UDAT, R21		; Reiniciar unidad dia
+000160 e050                      				LDI R21, 0x00
+000161 9350 0107                 				STS UDAT, R21		; Reiniciar unidad dia
                                  
-000149 9150 0108                 				LDS R21, DDAT
-00014b 9553                      				INC R21				; Incrementar decena dia
-00014c 9350 0108                 				STS DDAT, R21
-00014e cf2a                      				RJMP MAIN
+000163 9150 0108                 				LDS R21, DDAT
+000165 9553                      				INC R21				; Incrementar decena dia
+000166 9350 0108                 				STS DDAT, R21
+000168 cf24                      				RJMP MAIN
                                  
                                  		;----incrementar mes----
                                  			INC_MON:
-00014f e051                      				LDI R21, 0x01			; Resetear el dia a 01
-000150 9350 0107                 				STS UDAT, R21
-000152 e050                      				LDI R21, 0x00
-000153 9350 0108                 				STS DDAT, R21
+000169 e051                      				LDI R21, 0x01			; Resetear el dia a 01
+00016a 9350 0107                 				STS UDAT, R21
+00016c e050                      				LDI R21, 0x00
+00016d 9350 0108                 				STS DDAT, R21
                                  
-000155 9150 0105                 				LDS R21, UMON
-000157 3052                      				CPI R21, 0x02			; Verificar si unidad de mes es 2
-000158 f009                      				BREQ VER_MON_D_1		; Si si, verificar si decena es 1
-000159 c01a                      				RJMP continue2
+00016f 9150 0105                 				LDS R21, UMON
+000171 3052                      				CPI R21, 0x02			; Verificar si unidad de mes es 2
+000172 f009                      				BREQ VER_MON_D_1		; Si si, verificar si decena es 1
+000173 c01a                      				RJMP continue2
                                  
                                  				VER_MON_D_1:
-00015a 9150 0106                 					LDS R21, DMON
-00015c 3051                      					CPI R21, 0x01			; Verificar si decena de mes es 1
-00015d f009                      					BREQ RST_ALL			; Si si, resetear toda la fecha
-00015e c015                      					RJMP continue2
+000174 9150 0106                 					LDS R21, DMON
+000176 3051                      					CPI R21, 0x01			; Verificar si decena de mes es 1
+000177 f009                      					BREQ RST_ALL			; Si si, resetear toda la fecha
+000178 c015                      					RJMP continue2
                                  
                                  					RST_ALL:
-00015f e051                      						LDI R21, 0x01
-000160 9350 0107                 						STS UDAT, R21			; Reiniciar unidades mes y dia a 01;01
-000162 9350 0105                 						STS UMON, R21
-000164 e050                      						LDI R21, 0x00
-000165 9350 0108                 						STS DDAT, R21			; Reiniciar decenas mes a 0
-000167 9350 0106                 						STS DMON, R21
+000179 e051                      						LDI R21, 0x01
+00017a 9350 0107                 						STS UDAT, R21			; Reiniciar unidades mes y dia a 01;01
+00017c 9350 0105                 						STS UMON, R21
+00017e e050                      						LDI R21, 0x00
+00017f 9350 0108                 						STS DDAT, R21			; Reiniciar decenas mes a 0
+000181 9350 0106                 						STS DMON, R21
                                  
-000169 9350 0100                 						STS SEGS, R21			; Reiniciar contador segundos
-00016b 9350 0101                 						STS UMIN, R21			; Reiniciar contador unidades minutos
-00016d 9350 0102                 						STS DMIN, R21			; Reiniciar contador decenas minutos
-00016f 9350 0103                 						STS UHOR, R21			; Reiniciar contador unidades horas	
-000171 9350 0104                 						STS DHOR, R21			; Reiniciar contador decenas horas
-000173 cf05                      						RJMP MAIN
+000183 9350 0100                 						STS SEGS, R21			; Reiniciar contador segundos
+000185 9350 0101                 						STS UMIN, R21			; Reiniciar contador unidades minutos
+000187 9350 0102                 						STS DMIN, R21			; Reiniciar contador decenas minutos
+000189 9350 0103                 						STS UHOR, R21			; Reiniciar contador unidades horas	
+00018b 9350 0104                 						STS DHOR, R21			; Reiniciar contador decenas horas
+00018d ceff                      						RJMP MAIN
                                  
                                  				continue2:
-000174 9150 0105                 				LDS R21, UMON
-000176 3059                      				CPI R21, 0x09			; Verificar si unidad de mes en limite 9
-000177 f021                      				BREQ RST_MON			; Si si, pasar a octubre-diciembre
+00018e 9150 0105                 				LDS R21, UMON
+000190 3059                      				CPI R21, 0x09			; Verificar si unidad de mes en limite 9
+000191 f021                      				BREQ RST_MON			; Si si, pasar a octubre-diciembre
                                  
-000178 9553                      				INC R21
-000179 9350 0105                 				STS UMON, R21			; Incrementar unidades mes
+000192 9553                      				INC R21
+000193 9350 0105                 				STS UMON, R21			; Incrementar unidades mes
                                  
-00017b cefd                      				RJMP MAIN
+000195 cef7                      				RJMP MAIN
                                  
                                  				RST_MON:
-00017c e050                      					LDI R21, 0x00
-00017d 9350 0105                 					STS UMON, R21			; Pasar unidades mes de 9 a 0
-00017f e051                      					LDI R21, 0x01
-000180 9350 0106                 					STS DMON, R21			; Pasar decenas mes de 0 a 1
-000182 cef6                      					RJMP MAIN
-000183 cef5                      		RJMP MAIN
+000196 e050                      					LDI R21, 0x00
+000197 9350 0105                 					STS UMON, R21			; Pasar unidades mes de 9 a 0
+000199 e051                      					LDI R21, 0x01
+00019a 9350 0106                 					STS DMON, R21			; Pasar decenas mes de 0 a 1
+00019c cef0                      					RJMP MAIN
+00019d ceef                      		RJMP MAIN
                                  
                                  		; ==================================
                                  		; Alternadores de display
@@ -1524,248 +1554,717 @@ C:\Users\2015s\Documents\Atmel Studio\7.0\proyecto1\proyecto1\main.asm(12): Incl
                                  ; Alternador de hora
                                  ; =============================
                                  alternador_hora:
-000184 3020                      		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
-000185 f009                      		BREQ SHW_DISP_0
-000186 c010                      		RJMP nextdisp1
+00019e 3020                      		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+00019f f009                      		BREQ SHW_DISP_0
+0001a0 c010                      		RJMP nextdisp1
                                  		SHW_DISP_0:
-000187 e021                      			LDI R18, 0x01				; Alternar
-000188 e000                      			LDI R16, 0x00
-000189 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0001a1 e021                      			LDI R18, 0x01				; Alternar
+0001a2 e000                      			LDI R16, 0x00
+0001a3 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-00018a 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-00018b 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-00018c 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-00018d 982b                      			CBI PORTB, 3				; Habilitar display 0
+0001a4 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+0001a5 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+0001a6 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0001a7 982b                      			CBI PORTB, 3				; Habilitar display 0
                                  
-00018e e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-00018f e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0001a8 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0001a9 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-000190 9150 0101                 			LDS R21, UMIN
-000192 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-000193 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-000194 9114                      			LPM R17, Z					; Cargar pointer en registro
-000195 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+0001aa 9150 0101                 			LDS R21, UMIN
+0001ac 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0001ad 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0001ae 9114                      			LPM R17, Z					; Cargar pointer en registro
+0001af b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-000196 cee2                      			RJMP MAIN
+0001b0 cedc                      			RJMP MAIN
                                  	nextdisp1:
-000197 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
-000198 f009                      		BREQ SHW_DISP_1
-000199 c010                      		RJMP nextdisp2
+0001b1 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+0001b2 f009                      		BREQ SHW_DISP_1
+0001b3 c010                      		RJMP nextdisp2
                                  		SHW_DISP_1:
-00019a e022                      			LDI R18, 0x02				; Alternar
-00019b e000                      			LDI R16, 0x00
-00019c b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0001b4 e022                      			LDI R18, 0x02				; Alternar
+0001b5 e000                      			LDI R16, 0x00
+0001b6 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-00019d 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-00019e 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-00019f 982a                      			CBI PORTB, 2				; Habilitar display 1
-0001a0 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+0001b7 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+0001b8 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+0001b9 982a                      			CBI PORTB, 2				; Habilitar display 1
+0001ba 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0001a1 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0001a2 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0001bb e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0001bc e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0001a3 9150 0102                 			LDS R21, DMIN
-0001a5 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-0001a6 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0001a7 9114                      			LPM R17, Z					; Cargar pointer en registro
-0001a8 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+0001bd 9150 0102                 			LDS R21, DMIN
+0001bf 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0001c0 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0001c1 9114                      			LPM R17, Z					; Cargar pointer en registro
+0001c2 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0001a9 cecf                      			RJMP MAIN
+0001c3 cec9                      			RJMP MAIN
                                  	nextdisp2:
-0001aa 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
-0001ab f009                      		BREQ SHW_DISP_2
-0001ac c018                      		RJMP nextdisp3
+0001c4 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+0001c5 f009                      		BREQ SHW_DISP_2
+0001c6 c018                      		RJMP nextdisp3
                                  		SHW_DISP_2:
-0001ad e023                      			LDI R18, 0x03				; Alternar
-0001ae e000                      			LDI R16, 0x00
-0001af b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0001c7 e023                      			LDI R18, 0x03				; Alternar
+0001c8 e000                      			LDI R16, 0x00
+0001c9 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0001b0 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-0001b1 9829                      			CBI PORTB, 1				; Habilitar display 2
-0001b2 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-0001b3 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+0001ca 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+0001cb 9829                      			CBI PORTB, 1				; Habilitar display 2
+0001cc 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0001cd 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0001b4 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0001b5 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0001ce e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0001cf e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0001b6 9150 0103                 			LDS R21, UHOR
-0001b8 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-0001b9 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0001ba 9114                      			LPM R17, Z					; Cargar pointer en registro
-0001bb b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D	
+0001d0 9150 0103                 			LDS R21, UHOR
+0001d2 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0001d3 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0001d4 9114                      			LPM R17, Z					; Cargar pointer en registro
+0001d5 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D	
                                  
-0001bc 3091                      			CPI R25, 1					; Condicionales para el punto
-0001bd f019                      			BREQ DOT_ON
-0001be 3090                      			CPI R25, 0
-0001bf f019                      			BREQ DOT_OFF
-0001c0 ceb8                      			RJMP MAIN
+0001d6 3091                      			CPI R25, 1					; Condicionales para el punto
+0001d7 f019                      			BREQ DOT_ON
+0001d8 3090                      			CPI R25, 0
+0001d9 f019                      			BREQ DOT_OFF
+0001da ceb2                      			RJMP MAIN
                                  
                                  			DOT_ON:
-0001c1 9a5f                      				SBI PORTD, 7
-0001c2 ceb6                      				RJMP MAIN
+0001db 9a5f                      				SBI PORTD, 7
+0001dc ceb0                      				RJMP MAIN
                                  			DOT_OFF:
-0001c3 985f                      				CBI PORTD, 7
-0001c4 ceb4                      				RJMP MAIN
+0001dd 985f                      				CBI PORTD, 7
+0001de ceae                      				RJMP MAIN
                                  
                                  	nextdisp3:
-0001c5 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
-0001c6 f009                      		BREQ SHW_DISP_3
-0001c7 ceb1                      		RJMP MAIN
+0001df 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+0001e0 f009                      		BREQ SHW_DISP_3
+0001e1 ceab                      		RJMP MAIN
                                  
                                  		SHW_DISP_3:
-0001c8 e020                      			LDI R18, 0x00				; Alternar
-0001c9 e000                      			LDI R16, 0x00
-0001ca b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0001e2 e020                      			LDI R18, 0x00				; Alternar
+0001e3 e000                      			LDI R16, 0x00
+0001e4 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0001cb 9828                      			CBI PORTB, 0				; Habilitar display 3
-0001cc 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-0001cd 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-0001ce 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+0001e5 9828                      			CBI PORTB, 0				; Habilitar display 3
+0001e6 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+0001e7 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0001e8 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0001cf e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0001d0 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0001e9 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0001ea e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0001d1 9150 0104                 			LDS R21, DHOR
-0001d3 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-0001d4 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0001d5 9114                      			LPM R17, Z					; Cargar pointer en registro
-0001d6 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+0001eb 9150 0104                 			LDS R21, DHOR
+0001ed 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0001ee 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0001ef 9114                      			LPM R17, Z					; Cargar pointer en registro
+0001f0 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0001d7 cea1                      			RJMP MAIN
+0001f1 ce9b                      			RJMP MAIN
                                  
                                  ; =============================
                                  ; Alternador de fecha
                                  ; =============================
                                  
                                  alternador_fecha:
-0001d8 3020                      	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
-0001d9 f009                      		BREQ SHW_DISP_0_DATE
-0001da c010                      		RJMP nextdisp4
+0001f2 3020                      	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+0001f3 f009                      		BREQ SHW_DISP_0_DATE
+0001f4 c010                      		RJMP nextdisp4
                                  		SHW_DISP_0_DATE:
-0001db e021                      			LDI R18, 0x01				; Alternar
-0001dc e000                      			LDI R16, 0x00
-0001dd b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+0001f5 e021                      			LDI R18, 0x01				; Alternar
+0001f6 e000                      			LDI R16, 0x00
+0001f7 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0001de 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-0001df 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-0001e0 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-0001e1 982b                      			CBI PORTB, 3				; Habilitar display 0
+0001f8 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+0001f9 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+0001fa 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+0001fb 982b                      			CBI PORTB, 3				; Habilitar display 0
                                  
-0001e2 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0001e3 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+0001fc e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+0001fd e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0001e4 9150 0105                 			LDS R21, UMON
-0001e6 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-0001e7 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0001e8 9114                      			LPM R17, Z					; Cargar pointer en registro
-0001e9 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+0001fe 9150 0105                 			LDS R21, UMON
+000200 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000201 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000202 9114                      			LPM R17, Z					; Cargar pointer en registro
+000203 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0001ea ce8e                      			RJMP MAIN
+000204 ce88                      			RJMP MAIN
                                  	nextdisp4:
-0001eb 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
-0001ec f009                      		BREQ SHW_DISP_1_DATE
-0001ed c010                      		RJMP nextdisp5
+000205 3021                      		CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+000206 f009                      		BREQ SHW_DISP_1_DATE
+000207 c010                      		RJMP nextdisp5
                                  		SHW_DISP_1_DATE:
-0001ee e022                      			LDI R18, 0x02				; Alternar
-0001ef e000                      			LDI R16, 0x00
-0001f0 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+000208 e022                      			LDI R18, 0x02				; Alternar
+000209 e000                      			LDI R16, 0x00
+00020a b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-0001f1 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-0001f2 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-0001f3 982a                      			CBI PORTB, 2				; Habilitar display 1
-0001f4 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+00020b 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+00020c 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+00020d 982a                      			CBI PORTB, 2				; Habilitar display 1
+00020e 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-0001f5 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-0001f6 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+00020f e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+000210 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-0001f7 9150 0106                 			LDS R21, DMON
-0001f9 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-0001fa 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-0001fb 9114                      			LPM R17, Z					; Cargar pointer en registro
-0001fc b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+000211 9150 0106                 			LDS R21, DMON
+000213 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000214 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000215 9114                      			LPM R17, Z					; Cargar pointer en registro
+000216 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-0001fd ce7b                      			RJMP MAIN
+000217 ce75                      			RJMP MAIN
                                  	nextdisp5:
-0001fe 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
-0001ff f009                      		BREQ SHW_DISP_2_DATE
-000200 c018                      		RJMP nextdisp6
+000218 3022                      		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+000219 f009                      		BREQ SHW_DISP_2_DATE
+00021a c018                      		RJMP nextdisp6
                                  		SHW_DISP_2_DATE:
-000201 e023                      			LDI R18, 0x03				; Alternar
-000202 e000                      			LDI R16, 0x00
-000203 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+00021b e023                      			LDI R18, 0x03				; Alternar
+00021c e000                      			LDI R16, 0x00
+00021d b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-000204 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
-000205 9829                      			CBI PORTB, 1				; Habilitar display 2
-000206 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-000207 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+00021e 9a28                      			SBI PORTB, 0				; Deshabilitar display 3
+00021f 9829                      			CBI PORTB, 1				; Habilitar display 2
+000220 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+000221 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-000208 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-000209 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+000222 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+000223 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-00020a 9150 0107                 			LDS R21, UDAT
-00020c 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-00020d 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-00020e 9114                      			LPM R17, Z					; Cargar pointer en registro
-00020f b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D	
+000224 9150 0107                 			LDS R21, UDAT
+000226 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000227 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000228 9114                      			LPM R17, Z					; Cargar pointer en registro
+000229 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D	
                                  
-000210 3091                      			CPI R25, 1					; Condicionales para el punto
-000211 f019                      			BREQ DOT_ON_DATE
-000212 3090                      			CPI R25, 0
-000213 f019                      			BREQ DOT_OFF_DATE
-000214 ce64                      			RJMP MAIN
+00022a 3091                      			CPI R25, 1					; Condicionales para el punto
+00022b f019                      			BREQ DOT_ON_DATE
+00022c 3090                      			CPI R25, 0
+00022d f019                      			BREQ DOT_OFF_DATE
+00022e ce5e                      			RJMP MAIN
                                  
                                  			DOT_ON_DATE:
-000215 9a5f                      				SBI PORTD, 7
-000216 ce62                      				RJMP MAIN
+00022f 9a5f                      				SBI PORTD, 7
+000230 ce5c                      				RJMP MAIN
                                  			DOT_OFF_DATE:
-000217 985f                      				CBI PORTD, 7
-000218 ce60                      				RJMP MAIN
+000231 985f                      				CBI PORTD, 7
+000232 ce5a                      				RJMP MAIN
                                  
                                  	nextdisp6:
-000219 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
-00021a f009                      		BREQ SHW_DISP_3_DATE
-00021b ce5d                      		RJMP MAIN
+000233 3023                      		CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+000234 f009                      		BREQ SHW_DISP_3_DATE
+000235 ce57                      		RJMP MAIN
                                  
                                  		SHW_DISP_3_DATE:
-00021c e020                      			LDI R18, 0x00				; Alternar
-00021d e000                      			LDI R16, 0x00
-00021e b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
+000236 e020                      			LDI R18, 0x00				; Alternar
+000237 e000                      			LDI R16, 0x00
+000238 b90b                      			OUT PORTD, R16				; Eliminar ghost de PORTD
                                  
-00021f 9828                      			CBI PORTB, 0				; Habilitar display 3
-000220 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
-000221 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
-000222 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
+000239 9828                      			CBI PORTB, 0				; Habilitar display 3
+00023a 9a29                      			SBI PORTB, 1				; Deshabilitar display 2
+00023b 9a2a                      			SBI PORTB, 2				; Deshabilitar display 1
+00023c 9a2b                      			SBI PORTB, 3				; Deshabilitar display 0
                                  
-000223 e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
-000224 e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+00023d e9e6                      			LDI ZL, LOW(TRADUCTOR << 1)	;
+00023e e0f0                      			LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
                                  
-000225 9150 0108                 			LDS R21, DDAT
-000227 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
-000228 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
-000229 9114                      			LPM R17, Z					; Cargar pointer en registro
-00022a b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
+00023f 9150 0108                 			LDS R21, DDAT
+000241 1fe5                      			ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000242 1df1                      			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000243 9114                      			LPM R17, Z					; Cargar pointer en registro
+000244 b91b                      			OUT PORTD, R17				; Mostrar registro en puerto D
                                  
-00022b ce4d                      			RJMP MAIN
+000245 ce47                      			RJMP MAIN
                                  
-00022c ce4c                      		RJMP MAIN
+000246 ce46                      		RJMP MAIN
+                                 
+                                 ; =============================
+                                 ; Alternador config de hora
+                                 ; =============================
+                                 
+                                 alternador_config_hora:
+                                 
+000247 3020                      	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+000248 f009                      	BREQ SHW_DISP_0_CONF
+000249 c010                      	RJMP nextdisp7
+                                 	SHW_DISP_0_CONF:
+00024a e021                      		LDI R18, 0x01				; Alternar
+00024b e000                      		LDI R16, 0x00
+00024c b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+00024d 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+00024e 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+00024f 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+000250 982b                      		CBI PORTB, 3				; Habilitar display 0
+                                 
+000251 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+000252 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000253 9150 010a                 		LDS R21, S_UMIN
+000255 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000256 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000257 9114                      		LPM R17, Z					; Cargar pointer en registro
+000258 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+000259 cfed                      		RJMP alternador_config_hora
+                                 nextdisp7:
+00025a 3021                      	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+00025b f009                      	BREQ SHW_DISP_1_CONF
+00025c c010                      	RJMP nextdisp8
+                                 	SHW_DISP_1_CONF:
+00025d e022                      		LDI R18, 0x02				; Alternar
+00025e e000                      		LDI R16, 0x00
+00025f b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+000260 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+000261 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+000262 982a                      		CBI PORTB, 2				; Habilitar display 1
+000263 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+000264 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+000265 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000266 9150 010b                 		LDS R21, S_DMIN
+000268 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000269 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+00026a 9114                      		LPM R17, Z					; Cargar pointer en registro
+00026b b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+00026c cfda                      		RJMP alternador_config_hora
+                                 nextdisp8:
+00026d 3022                      	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+00026e f009                      	BREQ SHW_DISP_2_CONF
+00026f c018                      	RJMP nextdisp9
+                                 	SHW_DISP_2_CONF:
+000270 e023                      		LDI R18, 0x03				; Alternar
+000271 e000                      		LDI R16, 0x00
+000272 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+000273 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+000274 9829                      		CBI PORTB, 1				; Habilitar display 2
+000275 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+000276 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+000277 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+000278 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000279 9150 010c                 		LDS R21, S_UHOR
+00027b 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+00027c 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+00027d 9114                      		LPM R17, Z					; Cargar pointer en registro
+00027e b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D	
+                                 
+00027f 3091                      		CPI R25, 1					; Condicionales para el punto
+000280 f019                      		BREQ DOT_ON_CONF
+000281 3090                      		CPI R25, 0
+000282 f019                      		BREQ DOT_OFF_CONF
+000283 cfc3                      		RJMP alternador_config_hora
+                                 
+                                 		DOT_ON_CONF:
+000284 9a5f                      			SBI PORTD, 7
+000285 ce07                      			RJMP MAIN
+                                 		DOT_OFF_CONF:
+000286 985f                      			CBI PORTD, 7
+000287 ce05                      			RJMP MAIN
+                                 
+                                 nextdisp9:
+000288 3023                      	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+000289 f009                      	BREQ SHW_DISP_3_CONF
+00028a cfbc                      	RJMP alternador_config_hora
+                                 
+                                 	SHW_DISP_3_CONF:
+00028b e020                      		LDI R18, 0x00				; Alternar
+00028c e000                      		LDI R16, 0x00
+00028d b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+00028e 9828                      		CBI PORTB, 0				; Habilitar display 3
+00028f 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+000290 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+000291 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+000292 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+000293 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000294 9150 010d                 		LDS R21, S_DHOR
+000296 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000297 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000298 9114                      		LPM R17, Z					; Cargar pointer en registro
+000299 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+00029a cfac                      		RJMP alternador_config_hora
+                                 
+00029b cfab                      	RJMP alternador_config_hora
+                                 	
+                                 ; =============================
+                                 ; Alternador config de fecha
+                                 ; =============================
+                                 
+                                 alternador_config_fecha:
+                                 
+00029c 3020                      	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+00029d f009                      	BREQ SHW_DISP_0_CONF_DATE
+00029e c010                      	RJMP nextdisp10
+                                 	SHW_DISP_0_CONF_DATE:
+00029f e021                      		LDI R18, 0x01				; Alternar
+0002a0 e000                      		LDI R16, 0x00
+0002a1 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+0002a2 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+0002a3 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+0002a4 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+0002a5 982b                      		CBI PORTB, 3				; Habilitar display 0
+                                 
+0002a6 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+0002a7 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+0002a8 9150 010e                 		LDS R21, S_UMON
+0002aa 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0002ab 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0002ac 9114                      		LPM R17, Z					; Cargar pointer en registro
+0002ad b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+0002ae cfed                      		RJMP alternador_config_fecha
+                                 nextdisp10:
+0002af 3021                      	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+0002b0 f009                      	BREQ SHW_DISP_1_CONF_DATE
+0002b1 c010                      	RJMP nextdisp11
+                                 	SHW_DISP_1_CONF_DATE:
+0002b2 e022                      		LDI R18, 0x02				; Alternar
+0002b3 e000                      		LDI R16, 0x00
+0002b4 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+0002b5 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+0002b6 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+0002b7 982a                      		CBI PORTB, 2				; Habilitar display 1
+0002b8 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+0002b9 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+0002ba e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+0002bb 9150 010f                 		LDS R21, S_DMON
+0002bd 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0002be 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0002bf 9114                      		LPM R17, Z					; Cargar pointer en registro
+0002c0 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+0002c1 cfda                      		RJMP alternador_config_fecha
+                                 nextdisp11:
+0002c2 3022                      	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+0002c3 f009                      	BREQ SHW_DISP_2_CONF_DATE
+0002c4 c018                      	RJMP nextdisp12
+                                 	SHW_DISP_2_CONF_DATE:
+0002c5 e023                      		LDI R18, 0x03				; Alternar
+0002c6 e000                      		LDI R16, 0x00
+0002c7 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+0002c8 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+0002c9 9829                      		CBI PORTB, 1				; Habilitar display 2
+0002ca 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+0002cb 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+0002cc e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+0002cd e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+0002ce 9150 0110                 		LDS R21, S_UDAT
+0002d0 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0002d1 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0002d2 9114                      		LPM R17, Z					; Cargar pointer en registro
+0002d3 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D	
+                                 
+0002d4 3091                      		CPI R25, 1					; Condicionales para el punto
+0002d5 f019                      		BREQ DOT_ON_CONF_DATE
+0002d6 3090                      		CPI R25, 0
+0002d7 f019                      		BREQ DOT_OFF_CONF_DATE
+0002d8 cfc3                      		RJMP alternador_config_fecha
+                                 
+                                 		DOT_ON_CONF_DATE:
+0002d9 9a5f                      			SBI PORTD, 7
+0002da cdb2                      			RJMP MAIN
+                                 		DOT_OFF_CONF_DATE:
+0002db 985f                      			CBI PORTD, 7
+0002dc cdb0                      			RJMP MAIN
+                                 
+                                 nextdisp12:
+0002dd 3023                      	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+0002de f009                      	BREQ SHW_DISP_3_CONF_DATE
+0002df cfbc                      	RJMP alternador_config_fecha
+                                 
+                                 	SHW_DISP_3_CONF_DATE:
+0002e0 e020                      		LDI R18, 0x00				; Alternar
+0002e1 e000                      		LDI R16, 0x00
+0002e2 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+0002e3 9828                      		CBI PORTB, 0				; Habilitar display 3
+0002e4 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+0002e5 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+0002e6 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+0002e7 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+0002e8 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+0002e9 9150 0111                 		LDS R21, S_DDAT
+0002eb 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+0002ec 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+0002ed 9114                      		LPM R17, Z					; Cargar pointer en registro
+0002ee b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+0002ef cfac                      		RJMP alternador_config_fecha
+                                 
+                                 
+0002f0 cfab                      	RJMP alternador_config_fecha
+                                 
+                                 ; =============================
+                                 ; Alternador alarma
+                                 ; =============================
+                                 
+                                 alternador_alarma:
+                                 
+0002f1 3020                      	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+0002f2 f009                      	BREQ SHW_DISP_0_ALARM
+0002f3 c010                      	RJMP nextdisp13
+                                 	SHW_DISP_0_ALARM:
+0002f4 e021                      		LDI R18, 0x01				; Alternar
+0002f5 e000                      		LDI R16, 0x00
+0002f6 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+0002f7 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+0002f8 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+0002f9 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+0002fa 982b                      		CBI PORTB, 3				; Habilitar display 0
+                                 
+0002fb e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+0002fc e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+0002fd 9150 0112                 		LDS R21, UMALARM
+0002ff 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000300 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000301 9114                      		LPM R17, Z					; Cargar pointer en registro
+000302 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+000303 cfed                      		RJMP alternador_alarma
+                                 nextdisp13:
+000304 3021                      	CPI R18, 1						; si es 1 alternar a 2 y mostrar display 1
+000305 f009                      	BREQ SHW_DISP_1_ALARM
+000306 c010                      	RJMP nextdisp14
+                                 	SHW_DISP_1_ALARM:
+000307 e022                      		LDI R18, 0x02				; Alternar
+000308 e000                      		LDI R16, 0x00
+000309 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+00030a 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+00030b 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+00030c 982a                      		CBI PORTB, 2				; Habilitar display 1
+00030d 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+00030e e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+00030f e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000310 9150 0113                 		LDS R21, DMALARM
+000312 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000313 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000314 9114                      		LPM R17, Z					; Cargar pointer en registro
+000315 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+000316 cfda                      		RJMP alternador_alarma
+                                 nextdisp14:
+000317 3022                      	CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
+000318 f009                      	BREQ SHW_DISP_2_ALARM
+000319 c018                      	RJMP nextdisp15
+                                 	SHW_DISP_2_ALARM:
+00031a e023                      		LDI R18, 0x03				; Alternar
+00031b e000                      		LDI R16, 0x00
+00031c b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+00031d 9a28                      		SBI PORTB, 0				; Deshabilitar display 3
+00031e 9829                      		CBI PORTB, 1				; Habilitar display 2
+00031f 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+000320 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+000321 e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+000322 e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+000323 9150 0114                 		LDS R21, UHALARM
+000325 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000326 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000327 9114                      		LPM R17, Z					; Cargar pointer en registro
+000328 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D	
+                                 
+000329 3091                      		CPI R25, 1					; Condicionales para el punto
+00032a f019                      		BREQ DOT_ON_ALARM
+00032b 3090                      		CPI R25, 0
+00032c f019                      		BREQ DOT_OFF_ALARM
+                                 
+00032d cfc3                      		RJMP alternador_alarma
+                                 
+                                 		DOT_ON_ALARM:
+00032e 9a5f                      			SBI PORTD, 7
+00032f cd5d                      			RJMP MAIN
+                                 		DOT_OFF_ALARM:
+000330 985f                      			CBI PORTD, 7
+000331 cd5b                      			RJMP MAIN
+                                 
+                                 nextdisp15:
+000332 3023                      	CPI R18, 3						; si es 3 alternar a 0 y mostrar display 3
+000333 f009                      	BREQ SHW_DISP_3_ALARM
+000334 cfbc                      	RJMP alternador_alarma
+                                 
+                                 	SHW_DISP_3_ALARM:
+000335 e020                      		LDI R18, 0x00				; Alternar
+000336 e000                      		LDI R16, 0x00
+000337 b90b                      		OUT PORTD, R16				; Eliminar ghost de PORTD
+                                 
+000338 9828                      		CBI PORTB, 0				; Habilitar display 3
+000339 9a29                      		SBI PORTB, 1				; Deshabilitar display 2
+00033a 9a2a                      		SBI PORTB, 2				; Deshabilitar display 1
+00033b 9a2b                      		SBI PORTB, 3				; Deshabilitar display 0
+                                 
+00033c e9e6                      		LDI ZL, LOW(TRADUCTOR << 1)	;
+00033d e0f0                      		LDI ZH, HIGH(TRADUCTOR << 1); Reiniciar pointer 
+                                 
+00033e 9150 0115                 		LDS R21, DHALARM
+000340 1fe5                      		ADC ZL, R21					; Sumar el valor de unidades segundos a ZL (parte baja)
+000341 1df1                      		ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
+000342 9114                      		LPM R17, Z					; Cargar pointer en registro
+000343 b91b                      		OUT PORTD, R17				; Mostrar registro en puerto D
+                                 
+000344 cfac                      		RJMP alternador_alarma
+                                 
+                                 
+000345 cfab                      	RJMP alternador_alarma
                                  
                                  ; =============================================
                                  ; Contador de overflow para 7 segmentos, 20ms
                                  ; =============================================
                                  
                                  CNT_OVF:
-00022d 9aa8                      	SBI TIFR0, TOV0				; Limpiar bandera de "overflow"
-00022e eb02                          LDI R16, 178	
-00022f bd06                          OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
+000346 9aa8                      	SBI TIFR0, TOV0				; Limpiar bandera de "overflow"
+000347 eb02                          LDI R16, 178	
+000348 bd06                          OUT TCNT0, R16				; Volver a cargar valor inicial en TCNT0
                                  
-000230 9543                      	INC R20
+000349 9543                      	INC R20
                                  
-000231 9518                      	RETI
+00034a 9518                      	RETI
                                  
                                  ; =============================================
                                  ; Interrupciones de botón
                                  ; =============================================
                                  
+                                 INT_PCINT:
+                                 
+00034b 9b30                          SBIS PINC, 0            ; Verificar si PC0 está cleared
+00034c c007                          RJMP BUT_STATE			; Si no, ejecutar funcion de boton estado
+00034d 9b31                      	SBIS PINC, 1
+00034e 9518                      	RETI
+00034f 9b32                      	SBIS PINC, 2
+000350 9518                      	RETI
+000351 9b33                      	SBIS PINC, 3
+000352 9518                      	RETI
+                                 
+000353 9518                      	RETI
+                                 
+                                 	BUT_STATE:
+                                 
+000354 3030                      		CPI R19, 0				; Verificar estado del estado
+000355 f009                      		BREQ STATE_1			; si es 0, saltar a estado 1
+000356 c002                      		RJMP cont1
+                                 
+                                 		STATE_1:					; Estado mostrar fecha
+000357 e031                      			LDI R19, 1
+                                 
+000358 9518                      			RETI 
+                                 
+                                 		cont1:
+000359 3031                      		CPI R19, 1
+00035a f009                      		BREQ STATE_2			; si es 1, saltar a estado 2
+00035b c026                      		RJMP cont2
+                                 
+                                 		STATE_2:					; Estado config hora
+00035c e032                      			LDI R19, 2
+                                 
+                                 			; segundos tomar de actual y mover a config
+00035d 9150 0100                 			LDS R21, SEGS
+00035f 9350 0109                 			STS S_SEGS, R21
+                                 
+                                 			; hora tomar de actual y mover a config
+000361 9150 0101                 			LDS R21, UMIN			; Tomar unidad minuto actual  
+000363 9350 010a                 			STS S_UMIN, R21			; Guardar en config
+000365 9150 0102                 			LDS R21, DMIN			; Tomar decena minuto actual
+000367 9350 010b                 			STS S_DMIN, R21			; Guardar en config 
+000369 9150 0103                 			LDS R21, UHOR			; Tomar unidad hora actual
+00036b 9350 010c                 			STS S_UHOR, R21			; Guardar en config
+00036d 9150 0104                 			LDS R21, DHOR			; Tomar decena hora actual
+00036f 9350 010d                 			STS S_DHOR, R21			; Guardar en config
+                                 
+                                 			; fecha tomar de actual y mover a config
+000371 9150 0105                 			LDS R21, UMON			; Tomar unidad mes actual  
+000373 9350 010e                 			STS S_UMON, R21			; Guardar en config
+000375 9150 0106                 			LDS R21, DMON			; Tomar decena mes actual
+000377 9350 010f                 			STS S_DMON, R21			; Guardar en config 
+000379 9150 0107                 			LDS R21, UDAT			; Tomar unidad dia actual
+00037b 9350 0110                 			STS S_UDAT, R21			; Guardar en config
+00037d 9150 0108                 			LDS R21, DDAT			; Tomar decena dia actual
+00037f 9350 0111                 			STS S_DDAT, R21			; Guardar en config
+                                 
+000381 9518                      			RETI
+                                 
+                                 		cont2:
+000382 3032                      		CPI R19, 2
+000383 f009                      		BREQ STATE_3			; si es 2, saltar a estado 3
+000384 c002                      		RJMP cont3
+                                 
+                                 		STATE_3:					; Estado config fecha
+000385 e033                      			LDI R19, 3
+                                 
+000386 9518                      			RETI
+                                 
+                                 		cont3:
+000387 3033                      		CPI R19, 3
+000388 f009                      		BREQ STATE_4			; si es 3, saltar a estado 4
+000389 c002                      		RJMP cont4
+                                 
+                                 		STATE_4:					; Estado config alarma
+00038a e034                      			LDI R19, 4
+                                 
+00038b 9518                      			RETI
+                                 
+                                 		cont4:
+00038c 3034                      		CPI R19, 4
+00038d f009                      		BREQ STATE_0			; si es 4, saltar a estado 0
+00038e ccfe                      		RJMP MAIN
+                                 		
+                                 
+                                 		STATE_0:					; Estado mostrar hora
+00038f e030                      			LDI R19, 0
+                                 
+                                 			; segundos tomar de config y mover a actual
+000390 9150 0109                 			LDS R21, S_SEGS
+000392 9350 0100                 			STS SEGS, R21
+000394 e040                      			LDI R20, 0x00
+                                 
+                                 			; fecha tomar de config y mover a actual
+000395 9150 010e                 			LDS R21, S_UMON			; Tomar unidad mes config  
+000397 9350 0105                 			STS UMON, R21			; Guardar en actual
+000399 9150 010f                 			LDS R21, S_DMON			; Tomar decena mes config
+00039b 9350 0106                 			STS DMON, R21			; Guardar en actual 
+00039d 9150 0110                 			LDS R21, S_UDAT			; Tomar unidad dia config
+00039f 9350 0107                 			STS UDAT, R21			; Guardar en actual
+0003a1 9150 0111                 			LDS R21, S_DDAT			; Tomar decena dia config
+0003a3 9350 0108                 			STS DDAT, R21			; Guardar en actual
+                                 
+                                 			; hora tomar de config y mover a actual
+0003a5 9150 010a                 			LDS R21, S_UMIN			; Tomar unidad minuto config  
+0003a7 9350 0101                 			STS UMIN, R21			; Guardar en actual
+0003a9 9150 010b                 			LDS R21, S_DMIN			; Tomar decena minuto config
+0003ab 9350 0102                 			STS DMIN, R21			; Guardar en actual 
+0003ad 9150 010c                 			LDS R21, S_UHOR			; Tomar unidad hora config
+0003af 9350 0103                 			STS UHOR, R21			; Guardar en actual
+0003b1 9150 010d                 			LDS R21, S_DHOR			; Tomar decena hora config
+0003b3 9350 0104                 			STS DHOR, R21			; Guardar en actual
+                                 
+0003b5 9518                      			RETI
+                                 
+                                 		
 
 
 RESOURCE USE INFORMATION
@@ -1783,40 +2282,40 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   9 r0 :   0 r1 :   8 r2 :   0 r3 :   0 r4 :   0 
+x  :   0 y  :   0 z  :  21 r0 :   0 r1 :  20 r2 :   0 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   0 r11:   0 r12:   0 
-r13:   0 r14:   0 r15:   0 r16:  50 r17:  18 r18:  17 r19:   6 r20:   6 
-r21: 149 r22:   0 r23:   0 r24:   0 r25:   7 r26:   0 r27:   0 r28:   0 
-r29:   0 r30:  17 r31:  17 
+r13:   0 r14:   0 r15:   0 r16:  74 r17:  42 r18:  41 r19:  19 r20:   7 
+r21: 220 r22:   0 r23:   0 r24:   0 r25:  13 r26:   0 r27:   0 r28:   0 
+r29:   0 r30:  41 r31:  41 
 Registers used: 11 out of 35 (31.4%)
 
 "ATmega328P" instruction use summary:
-.lds  :   0 .sts  :   0 adc   :  16 add   :   0 adiw  :   0 and   :   0 
+.lds  :   0 .sts  :   0 adc   :  40 add   :   0 adiw  :   0 and   :   0 
 andi  :   0 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :  51 brge  :   0 brhc  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :  77 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
 brne  :   0 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :  10 cbr   :   0 
+brvs  :   0 bset  :   0 bst   :   0 call  :   0 cbi   :  25 cbr   :   0 
 clc   :   0 clh   :   0 cli   :   1 cln   :   0 clr   :   0 cls   :   0 
 clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :  51 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   0 inc   :   9 jmp   :   2 
-ld    :   0 ldd   :   0 ldi   :  75 lds   :  35 lpm   :  18 lsl   :   0 
+cpi   :  77 cpse  :   0 dec   :   0 eor   :   0 fmul  :   0 fmuls :   0 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   0 inc   :   9 jmp   :   3 
+ld    :   0 ldd   :   0 ldi   : 131 lds   :  65 lpm   :  42 lsl   :   0 
 lsr   :   0 mov   :   0 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  28 pop   :   0 
-push  :   0 rcall :   0 ret   :   0 reti  :   1 rjmp  :  59 rol   :   0 
-ror   :   0 sbc   :   0 sbci  :   0 sbi   :  27 sbic  :   0 sbis  :   0 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :  52 pop   :   0 
+push  :   0 rcall :   0 ret   :   0 reti  :  10 rjmp  :  98 rol   :   0 
+ror   :   0 sbc   :   0 sbci  :   0 sbi   :  66 sbic  :   0 sbis  :   4 
 sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   0 sec   :   0 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
-sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  56 
+sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  83 
 sub   :   0 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 16 out of 113 (14.2%)
+Instructions used: 17 out of 113 (15.0%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x000464   1048     16   1064   32768   3.2%
-[.dseg] 0x000100 0x000111      0     17     17    2048   0.8%
+[.cseg] 0x000000 0x00076c   1828     16   1844   32768   5.6%
+[.dseg] 0x000100 0x000116      0     22     22    2048   1.1%
 [.eseg] 0x000000 0x000000      0      0      0    1024   0.0%
 
 Assembly complete, 0 errors, 0 warnings
