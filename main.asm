@@ -141,12 +141,17 @@ START:
 
 		LDI R20, 0x00				; Inicializar contador de contador
 		LDI R21, 0x00				; Común de RAM
+
 		LDI R25, 0x01				; Inicializar alternador de punto
 
 		STS SEGS, R21				; Cargar inicial a segundos
-		STS UMIN, R21				; Cargar inicial a unidades minutos				
+		LDI R21, 0x9
+		STS UMIN, R21				; Cargar inicial a unidades minutos		
+		LDI R21, 0x2		
 		STS DMIN, R21				; Cargar inicial a decenas minutos
+		LDI R21, 0x06
 		STS UHOR, R21				; Cargar inicial a unidades horas
+		LDI R21, 0x00
 		STS DHOR, R21				; Cargar inicial a decenas horas
 
 		LDI R21, 0x01
@@ -188,6 +193,38 @@ START:
 
 	MAIN:
 		
+		LDS R21, UMALARM
+		LDS R22, UMIN
+		CP R21, R22
+		BREQ MAIN_VERALRM_DM
+		CBI PINB, 4
+		RJMP cont_main
+
+		MAIN_VERALRM_DM:
+			LDS R21, DMALARM
+			LDS R22, DMIN
+			CP R21, R22
+			BREQ MAIN_VERALRM_UH
+			CBI PINB, 4
+			RJMP cont_main
+
+			MAIN_VERALRM_UH:
+				LDS R21, UHALARM
+				LDS R22, UHOR
+				CP R21, R22
+				BREQ MAIN_VERALRM_DH
+				CBI PINB, 4
+				RJMP cont_main
+
+				MAIN_VERALRM_DH:
+					LDS R21, DHALARM
+					LDS R22, DHOR
+					CPSE R21, R22
+					RJMP cont_main
+					SBI PINB, 4
+
+		cont_main:
+		CBI PINB, 4
 		CPI R20, 50						; Verificar si ya se completaron 50 vueltas (1 segundo)
 		BREQ RST_CCNT					; Si ha completado, resetear contador de contador, si no continuar
 		CPI R20, 0						; Condicionales para el punto
@@ -219,7 +256,6 @@ START:
 		alt_alarm:
 			RJMP alternador_alarma
 
-
 		DT_N:
 			LDI R25, 1
 			RJMP ver_mode
@@ -233,13 +269,14 @@ START:
 
 		RST_CCNT:
 			LDI R20, 0x00				; Reiniciar contador de contador
-
+			
+			CBI PINB, 4
 			CPI R19, 2
-			BREQ MAIN
+			BREQ mainjump
 			CPI R19, 3
-			BREQ MAIN
+			BREQ mainjump
 			CPI R19, 4
-			BREQ MAIN
+			BREQ mainjump
 
 			;RJMP RST_CNT_M				; Activar para correr fecha mas rapido
 			LDS R21, SEGS
@@ -248,12 +285,13 @@ START:
 
 			INC R21						; Incrementar contador segundos
 			STS SEGS, R21
-			
+			mainjump:
 			RJMP MAIN
 
 			RST_CNT_S:
-				
+
 				LDI R21, 0x00
+				OUT PORTB, R21
 				STS SEGS, R21			; Reiniciar unidades de segundos
 
 				LDS R21, UMIN			; Cargar de RAM
@@ -683,7 +721,7 @@ alternador_fecha:
 			ADC ZH, R1 					; Sumar el acarreo a ZH (parte alta)
 			LPM R17, Z					; Cargar pointer en registro
 			OUT PORTD, R17				; Mostrar registro en puerto D
-
+			
 			RJMP MAIN
 	nextdisp5:
 		CPI R18, 2						; si es 2 alternar a 3 y mostrar display 2
@@ -1132,15 +1170,14 @@ CNT_OVF:
 ; =============================================
 
 INT_PCINT:
-
+	LDI R16, 0x00
+	OUT PORTB, R16
     SBIS PINC, 0            ; Verificar si PC0 está cleared
     RJMP BUT_STATE			; Si no, ejecutar funcion de boton estado
 	SBIS PINC, 1
 	RJMP BUT_INC
 	SBIS PINC, 2
 	RJMP BUT_DEC
-	SBIS PINC, 3
-	RJMP BUT_ALARM
 
 	RETI
 
@@ -1681,22 +1718,30 @@ INT_PCINT:
 			
 		DEC_FECHA_CONFIG:	
 			LDS R21, S_UDAT
-			CPI R21, 1
-			BREQ RST_DAT_CONFIG
-			RJMP coti1
+			CPI R21, 0x01
+			BREQ VER_DEC_CONFIG
+			RJMP conti1
 
-			RST_DAT_CONFIG:
+			VER_DEC_CONFIG:
 				LDS R21, S_DDAT
-				CPI R21, 0
+				CPI R21, 0x00
 				BREQ DEC_MON_CONFIG
-				LDI R21, 9
+				
+			conti1:
+			LDS R21, S_UDAT
+			CPI R21, 0x00
+			BREQ DEC_DEC_CONFIG
+			RJMP conti2
+
+			DEC_DEC_CONFIG:
+				LDI R21, 0x09
 				STS S_UDAT, R21
 				LDS R21, S_DDAT
 				DEC R21
 				STS S_DDAT, R21
 				RETI
-
-			coti1:
+			
+			conti2:
 			LDS R21, S_UDAT
 			DEC R21
 			STS S_UDAT, R21
@@ -1705,44 +1750,44 @@ INT_PCINT:
 			;----Decrementar mes
 			DEC_MON_CONFIG:
 				LDS R21, S_DMON
-				CPI R21, 0    ; aqui me quede
+				CPI R21, 0x00    
 				BREQ VER_RST_DEC
 				RJMP deccont1
 
 				VER_RST_DEC:
 					LDS R21, S_UMON
-					CPI R21, 1
+					CPI R21, 0x01
 					BREQ RST_TO_DEC
 					RJMP deccont2
 
 					RST_TO_DEC:
-						LDI R21, 1
+						LDI R21, 0x01
 						STS S_UDAT, R21
-						LDI R21, 3
+						LDI R21, 0x03
 						STS S_DDAT, R21
-						LDI R21, 2
+						LDI R21, 0x02
 						STS S_UMON, R21
-						LDI R21, 1
+						LDI R21, 0x01
 						STS S_DMON, R21
 						RETI
 
 					deccont2:
 					LDS R21, S_UMON
-					CPI R21, 2			; febrero
+					CPI R21, 0x02			; febrero
 					BREQ RST_MON_31_S
-					CPI R21, 3			; marzo
+					CPI R21, 0x03			; marzo
 					BREQ RST_MON_28_S
-					CPI R21, 4			; abril
+					CPI R21, 0x04			; abril
 					BREQ RST_MON_31_S
-					CPI R21, 5			; mayo
+					CPI R21, 0x05			; mayo
 					BREQ RST_MON_30_S
-					CPI R21, 6			; junio
+					CPI R21, 0x06			; junio
 					BREQ RST_MON_31_S
-					CPI R21, 7			; julio
+					CPI R21, 0x07			; julio
 					BREQ RST_MON_30_S
-					CPI R21, 8			; agosto
+					CPI R21, 0x08			; agosto
 					BREQ RST_MON_31_S
-					CPI R21, 9			; septiembre
+					CPI R21, 0x09			; septiembre
 					BREQ RST_MON_31_S
 					RJMP deccont1
 
@@ -1755,53 +1800,57 @@ INT_PCINT:
 
 				deccont1:
 				LDS R21, S_DMON
-				CPI R21, 1
+				CPI R21, 0x01
 				BREQ VER_OCTNOVDEC
 				RETI
 				
 				VER_OCTNOVDEC:
 					LDS R21, S_UMON
-					CPI R21, 0			; octubre
+					CPI R21, 0x00			; octubre
 					BREQ RST_MON_30_S
-					CPI R21, 1			; noviembre
+					CPI R21, 0x01			; noviembre
 					BREQ RST_MON_31_S
-					CPI R21, 2			; diciembre
+					CPI R21, 0x02			; diciembre
 					BREQ RST_MON_30_S
 					RETI
 
 				RST_30_S:
 					LDS R21, S_DMON
-					CPI R21, 1
+					CPI R21, 0x01
 					BREQ ver_oct
 					RJMP contin1
 
 					ver_oct:
 						LDS R21, S_UMON
-						CPI R21, 0
+						CPI R21, 0x00
 						BREQ rst_oct
 						RJMP contin1
 
 						rst_oct:
-							LDI R21, 3
+							LDI R21, 0x03
 							STS S_DDAT, R21
-							LDI R21, 0
+							LDI R21, 0x00
 							STS S_UDAT, R21
-							LDI R21, 9
+							LDI R21, 0x09
 							STS S_UMON, R21
-							LDI R21, 0
+							LDI R21, 0x00
 							STS S_DMON, R21
 							RETI
 
 					contin1:
+					LDI R21, 0x03
+					STS S_DDAT, R21
+					LDI R21, 0x00
+					STS S_UDAT, R21
 					LDS R21, S_UMON
 					DEC R21
 					STS S_UMON, R21
 					RETI
 
 				RST_31_S:
-					LDI R21, 3
+					LDI R21, 0x03
 					STS S_DDAT, R21
-					LDI R21, 0
+					LDI R21, 0x01
 					STS S_UDAT, R21
 					
 					LDS R21, S_UMON
@@ -1810,13 +1859,13 @@ INT_PCINT:
 					RETI
 
 				RST_28_S:
-					LDI R21, 2
+					LDI R21, 0x02
 					STS S_DDAT, R21
-					LDI R21, 8
+					LDI R21, 0x08
 					STS S_UDAT, R21
-					LDI R21, 0
+					LDI R21, 0x00
 					STS S_DMON, R21
-					LDI R21, 2
+					LDI R21, 0x02
 					STS S_UMON, R21
 					RETI
 					
@@ -1894,13 +1943,5 @@ INT_PCINT:
 							LDI R21, 0x02
 							STS DHALARM, R21
 							RETI
-
-		RETI
-
-; ==============================================
-; Condicionales para boton que enciende/apaga alarma (PC3)
-; ==============================================
-
-	BUT_ALARM:
 
 		RETI
