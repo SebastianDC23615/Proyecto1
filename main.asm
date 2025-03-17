@@ -171,9 +171,13 @@ START:
 		STS S_DMON, R21				; Valor a guardar a decenas mes config hora
 		STS S_DDAT, R21				; Valor a guardar a decenas dia config hora
 
+		LDI R21, 0
 		STS UMALARM, R21			; Valor a guardar unidades de minuto alarma
+		LDI R21, 3
 		STS DMALARM, R21			; Valor a guardar decenas de minuto alarma
+		LDI R21, 6
 		STS UHALARM, R21			; Valor a guardar unidades de hora alarma
+		LDI R21, 0
 		STS DHALARM, R21			; Valor a guardar decenas de hora alarma
 
 		SEI							; Habilitar interrupciones
@@ -516,6 +520,8 @@ START:
 ; Alternador de hora
 ; =============================
 alternador_hora:
+		SBI PORTC, 4
+		CBI PORTC, 5
 		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 		BREQ SHW_DISP_0
 		RJMP nextdisp1
@@ -630,7 +636,9 @@ alternador_hora:
 ; =============================
 
 alternador_fecha:
-	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
+		SBI PORTC, 5
+		CBI PORTC, 4
+		CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 		BREQ SHW_DISP_0_DATE
 		RJMP nextdisp4
 		SHW_DISP_0_DATE:
@@ -746,7 +754,6 @@ alternador_fecha:
 ; =============================
 
 alternador_config_hora:
-
 	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 	BREQ SHW_DISP_0_CONF
 	RJMP nextdisp7
@@ -824,9 +831,13 @@ nextdisp8:
 		RJMP alternador_config_hora
 
 		DOT_ON_CONF:
+			CBI PORTC, 5
+			SBI PORTC, 4
 			SBI PORTD, 7
 			RJMP MAIN
 		DOT_OFF_CONF:
+			CBI PORTC, 5
+			CBI PORTC, 4
 			CBI PORTD, 7
 			RJMP MAIN
 
@@ -863,7 +874,6 @@ nextdisp9:
 ; =============================
 
 alternador_config_fecha:
-
 	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 	BREQ SHW_DISP_0_CONF_DATE
 	RJMP nextdisp10
@@ -941,9 +951,13 @@ nextdisp11:
 		RJMP alternador_config_fecha
 
 		DOT_ON_CONF_DATE:
+			SBI PORTC, 5
+			CBI PORTC, 4
 			SBI PORTD, 7
 			RJMP MAIN
 		DOT_OFF_CONF_DATE:
+			CBI PORTC, 5
+			CBI PORTC, 4
 			CBI PORTD, 7
 			RJMP MAIN
 
@@ -981,7 +995,8 @@ nextdisp12:
 ; =============================
 
 alternador_alarma:
-
+	CBI PORTC, 5
+	CBI PORTC, 4
 	CPI R18, 0						; si es 0 alternar a 1 y mostrar display 0
 	BREQ SHW_DISP_0_ALARM
 	RJMP nextdisp13
@@ -1060,9 +1075,13 @@ nextdisp14:
 		RJMP alternador_alarma
 
 		DOT_ON_ALARM:
+			SBI PORTC, 5
+			SBI PORTC, 4
 			SBI PORTD, 7
 			RJMP MAIN
 		DOT_OFF_ALARM:
+			CBI PORTC, 5
+			CBI PORTC, 4
 			CBI PORTD, 7
 			RJMP MAIN
 
@@ -1117,13 +1136,17 @@ INT_PCINT:
     SBIS PINC, 0            ; Verificar si PC0 está cleared
     RJMP BUT_STATE			; Si no, ejecutar funcion de boton estado
 	SBIS PINC, 1
-	RETI
+	RJMP BUT_INC
 	SBIS PINC, 2
-	RETI
+	RJMP BUT_DEC
 	SBIS PINC, 3
-	RETI
+	RJMP BUT_ALARM
 
 	RETI
+
+; ==============================================
+; Condicionales para boton que cambia de estado
+; ==============================================
 
 	BUT_STATE:
 
@@ -1226,4 +1249,658 @@ INT_PCINT:
 
 			RETI
 
+; ==============================================
+; Condicionales para boton que incrementa (PC1)
+; ==============================================
+	
+	BUT_INC:
+
+		;-------Para incrementar hora-------
+		CPI R19, 2
+		BREQ INC_HORA_CONFIG
+
+		RJMP hor_cont
 		
+		INC_HORA_CONFIG:
+			;----Condicionales para aumentar hora----
+
+			LDS R21, S_UMIN
+			CPI R21, 9
+			BREQ RST_DMIN_S
+			
+			LDS R21, S_UMIN
+			INC R21
+			STS S_UMIN, R21
+			RETI
+
+			RST_DMIN_S:
+				LDI R21, 0
+				STS S_UMIN, R21
+
+				LDS R21, S_DMIN
+				CPI R21, 5
+				BREQ RST_UHOR_S
+
+				LDS R21, S_DMIN
+				INC R21
+				STS S_DMIN, R21
+				RETI
+
+				RST_UHOR_S:
+					LDI R21, 0
+					STS S_UMIN, R21
+					STS S_DMIN, R21
+
+					LDS R21, S_UHOR
+					CPI R21, 3
+					BREQ VER_24H_S
+					RJMP but_cont1
+
+					VER_24H_S:
+						LDS R21, S_DHOR
+						CPI R21, 2
+						BREQ RST_ALL_S
+
+					but_cont1:
+					LDS R21, S_UHOR
+					CPI R21, 9
+					BREQ RST_DHOR_S
+
+					LDS R21, S_UHOR
+					INC R21
+					STS S_UHOR, R21
+
+					RETI
+
+					RST_DHOR_S:
+						LDI R21, 0
+						STS S_UMIN, R21
+						STS S_DMIN, R21
+						STS S_UHOR, R21
+
+						LDS R21, S_DHOR
+						INC R21
+						STS S_DHOR, R21
+
+						RETI
+
+					RST_ALL_S:
+						LDI R21, 0
+						STS S_UMIN, R21
+						STS S_DMIN, R21
+						STS S_UHOR, R21
+						STS S_DHOR, R21
+						RETI
+						
+
+
+		hor_cont:
+		;-------Para incrementar fecha------
+		CPI R19, 3
+		BREQ INC_FECHA_CONFIG
+		RJMP alrm_cont
+
+		INC_FECHA_CONFIG:
+			
+			;----final 28----
+		fin_28_S:
+			LDS R21, S_UDAT			; Cargar de RAM
+			CPI R21, 0x08			; Verificar si unidad es 8
+			BREQ VER_28_S				; Si si, verificar si es 2
+			RJMP fin_30_S
+
+			VER_28_S:
+				LDS R21, S_DDAT
+				CPI R21, 0x02			; Verificar si decena es 2 para 28
+				BREQ VER_FEB_D_S			; Si si, verificar febrero
+				RJMP fin_30_S
+
+				VER_FEB_D_S:
+					LDS R21, S_DMON
+					CPI R21, 0x00			; Verificar si decena es 0
+					BREQ VER_FEB_U_S			; Si si, verificar si es 2
+					RJMP fin_30_S
+					
+					VER_FEB_U_S:
+						LDS R21, S_UMON
+						CPI R21, 0x02			; Verificar si es 02
+						BREQ RST_DAY_FEB_S		; Si si, resetear counter y aumentar a marzo
+						RJMP fin_30_S
+						RST_DAY_FEB_S:
+							RJMP INC_MON_S
+		;----final 30----
+		fin_30_S:
+			LDS R21, S_UDAT
+			CPI R21, 0x00			; Verificar si unidad dia es 0
+			BREQ VER_30_S				; si si, verificar decena
+			RJMP fin_31_S
+			
+			VER_30_S:
+				LDS R21, S_DDAT
+				CPI R21, 0x03			; Verificar si decena es 3
+				BREQ VER_30_S_INC			; Si si, verificar que mes es
+				RJMP fin_31_S
+
+				VER_30_S_INC:
+					LDS R21, S_DMON
+					CPI R21, 0x01			; Verificar si decena mes es 1
+					BREQ VER_NOV_S			; Si si, verificar si es noviembre
+					RJMP continue3_S
+
+					VER_NOV_S:
+						LDS R21, S_UMON
+						CPI R21, 0x01			; Verificar si unidad es 1
+						BREQ RST_DAY_30_S			; Si si, reiniciar dia y aumentar mes
+
+					continue3_S:
+					LDS R21, S_UMON
+					CPI R21, 0x04			; Verificar si es abril
+					BREQ RST_DAY_30_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x06			; Verificar si es junio
+					BREQ RST_DAY_30_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x09			; Verificar si es septiembre
+					BREQ RST_DAY_30_S			; Si si, reiniciar dia y aumentar mes
+					RJMP fin_31_S
+
+					RST_DAY_30_S:
+						RJMP INC_MON_S
+					
+
+
+		;----final 31----
+		fin_31_S:
+			LDS R21, S_UDAT
+			CPI R21, 0x01			; Verificar si unidad dia es 1
+			BREQ VER_31_S				; Si si, verificar decena dia
+			RJMP fin_9_S
+
+			VER_31_S:
+				LDS R21, S_DDAT
+				CPI R21, 0x03			; Verificar si decena dia es 3
+				BREQ VER_31_S_INC			; Si si, verificar que mes
+				RJMP fin_9_S
+
+				VER_31_S_INC:
+					LDS R21, S_DMON
+					CPI R21, 0x01			; Verificar si decena mes es 1
+					BREQ VER_OCTDIC_S			; Si si, verificar si es octubre o diciembre
+					RJMP continue4_S
+
+					VER_OCTDIC_S:
+						LDS R21, S_UMON
+						CPI R21, 0x00			; Verificar si es octubre
+						BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+						CPI R21, 0x02			; Verificar si es diciembre
+						BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+
+					continue4_S:
+					LDS R21, S_UMON
+					CPI R21, 0x01			; Verificar si es enero
+					BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x03			; Verificar si es marzo
+					BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x05			; Verificar si es mayo
+					BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x07			; Verificar si es julio
+					BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+					CPI R21, 0x08			; Verificar si es agosto
+					BREQ RST_DAY_31_S			; Si si, reiniciar dia y aumentar mes
+					RJMP fin_9_S
+
+					RST_DAY_31_S:
+						RJMP INC_MON_S
+
+		;----inc a dia cuando unidad es 9----
+		fin_9_S:
+			LDS R21, S_UDAT
+			CPI R21, 0x09			; Verificar si unidad es 9
+			BREQ INC_DAY_D_S			; Si si, incrementar decena, sino saltar
+			LDS R21, S_UDAT
+			INC R21					; Incrementar unidad dia
+			STS S_UDAT, R21
+			RETI
+
+			INC_DAY_D_S:
+				LDI R21, 0x00
+				STS S_UDAT, R21		; Reiniciar unidad dia
+
+				LDS R21, S_DDAT
+				INC R21				; Incrementar decena dia
+				STS S_DDAT, R21
+				RETI
+
+		;----incrementar mes----
+			INC_MON_S:
+				LDI R21, 0x01			; Resetear el dia a 01
+				STS S_UDAT, R21
+				LDI R21, 0x00
+				STS S_DDAT, R21
+
+				LDS R21, S_UMON
+				CPI R21, 0x02			; Verificar si unidad de mes es 2
+				BREQ VER_MON_D_1_S		; Si si, verificar si decena es 1
+				RJMP continue2_S
+
+				VER_MON_D_1_S:
+					LDS R21, S_DMON
+					CPI R21, 0x01			; Verificar si decena de mes es 1
+					BREQ RST_ALL_S_D			; Si si, resetear toda la fecha
+					RJMP continue2_S
+
+					RST_ALL_S_D:
+						LDI R21, 0x01
+						STS S_UDAT, R21			; Reiniciar unidades mes y dia a 01;01
+						STS S_UMON, R21
+						LDI R21, 0x00
+						STS S_DDAT, R21			; Reiniciar decenas mes a 0
+						STS S_DMON, R21
+
+						RETI
+
+				continue2_S:
+				LDS R21, S_UMON
+				CPI R21, 0x09			; Verificar si unidad de mes en limite 9
+				BREQ RST_MON_S			; Si si, pasar a octubre-diciembre
+
+				INC R21
+				STS S_UMON, R21			; Incrementar unidades mes
+
+				RETI
+
+				RST_MON_S:
+					LDI R21, 0x00
+					STS S_UMON, R21			; Pasar unidades mes de 9 a 0
+					LDI R21, 0x01
+					STS S_DMON, R21			; Pasar decenas mes de 0 a 1
+					RETI
+		RETI
+
+
+		alrm_cont:
+		;-------Para incrementar alarma-----
+		CPI R19, 4
+		BREQ INC_ALARM_CONFIG
+		RETI
+
+		INC_ALARM_CONFIG:
+
+			LDS R21, UMALARM
+			CPI R21, 9
+			BREQ RST_DMIN_S_ALRM
+			
+			LDS R21, UMALARM
+			INC R21
+			STS UMALARM, R21
+			RETI
+
+			RST_DMIN_S_ALRM:
+				LDI R21, 0
+				STS UMALARM, R21
+
+				LDS R21, DMALARM
+				CPI R21, 5
+				BREQ RST_UHOR_S_ALRM
+
+				LDS R21, DMALARM
+				INC R21
+				STS DMALARM, R21
+				RETI
+
+				RST_UHOR_S_ALRM:
+					LDI R21, 0
+					STS UMALARM, R21
+					STS DMALARM, R21
+
+					LDS R21, UHALARM
+					CPI R21, 3
+					BREQ VER_24H_S_ALRM
+					RJMP but_cont1_ALRM
+
+					VER_24H_S_ALRM:
+						LDS R21, DHALARM
+						CPI R21, 2
+						BREQ RST_ALL_S_ALRM
+
+					but_cont1_ALRM:
+					LDS R21, UHALARM
+					CPI R21, 9
+					BREQ RST_DHOR_S_ALRM
+
+					LDS R21, UHALARM
+					INC R21
+					STS UHALARM, R21
+
+					RETI
+
+					RST_DHOR_S_ALRM:
+						LDI R21, 0
+						STS UMALARM, R21
+						STS DMALARM, R21
+						STS UHALARM, R21
+
+						LDS R21, DHALARM
+						INC R21
+						STS DHALARM, R21
+
+						RETI
+
+					RST_ALL_S_ALRM:
+						LDI R21, 0
+						STS UMALARM, R21
+						STS DMALARM, R21
+						STS UHALARM, R21
+						STS DHALARM, R21
+						RETI
+
+		RETI
+
+; ==============================================
+; Condicionales para boton que decrementa (PC2)
+; ==============================================
+
+	BUT_DEC:
+		;----Para decrementar hora----
+		CPI R19, 2
+		BREQ DEC_HORA_CONFIG
+
+		RJMP hor_cont2
+		
+		DEC_HORA_CONFIG:
+			LDS R21, S_UMIN
+			CPI R21, 0x00
+			BREQ RST_UMIN_DEC
+			
+			LDS R21, S_UMIN
+			DEC R21
+			STS S_UMIN, R21
+			RETI
+
+			RST_UMIN_DEC:
+				LDI R21, 0x09
+				STS S_UMIN, R21
+
+				LDS R21, S_DMIN
+				CPI R21, 0x00
+				BREQ RST_DMIN_DEC
+
+				LDS R21, S_DMIN
+				DEC R21
+				STS S_DMIN, R21
+				RETI
+
+				RST_DMIN_DEC:
+					LDI R21, 0x09
+					STS S_UMIN, R21
+					LDI R21, 0x05
+					STS S_DMIN, R21
+
+					LDS R21, S_UHOR
+					CPI R21, 0x00
+					BREQ RST_UHOR_DEC
+
+					LDS R21, S_UHOR
+					DEC R21
+					STS S_UHOR, R21
+					RETI
+					
+					RST_UHOR_DEC:
+						LDI R21, 0x09
+						STS S_UMIN, R21
+						LDI R21, 0x05
+						STS S_DMIN, R21
+						LDI R21, 0x09
+						STS S_UHOR, R21
+
+						LDS R21, S_DHOR
+						CPI R21, 0x00
+						BREQ RST_DHOR_DEC
+
+						LDS R21, S_DHOR
+						DEC R21
+						STS S_DHOR, R21
+						RETI
+
+						RST_DHOR_DEC:
+							LDI R21, 0x09
+							STS S_UMIN, R21
+							LDI R21, 0x05
+							STS S_DMIN, R21
+							LDI R21, 0x03
+							STS S_UHOR, R21
+							LDI R21, 0x02
+							STS S_DHOR, R21
+							RETI
+
+
+
+		;----Para decrementar fecha----
+		hor_cont2:
+		CPI R19, 3
+		BREQ DEC_FECHA_CONFIG
+		RJMP alarm_cont2
+			
+		DEC_FECHA_CONFIG:	
+			LDS R21, S_UDAT
+			CPI R21, 1
+			BREQ RST_DAT_CONFIG
+			RJMP coti1
+
+			RST_DAT_CONFIG:
+				LDS R21, S_DDAT
+				CPI R21, 0
+				BREQ DEC_MON_CONFIG
+				LDI R21, 9
+				STS S_UDAT, R21
+				LDS R21, S_DDAT
+				DEC R21
+				STS S_DDAT, R21
+				RETI
+
+			coti1:
+			LDS R21, S_UDAT
+			DEC R21
+			STS S_UDAT, R21
+			RETI
+
+			;----Decrementar mes
+			DEC_MON_CONFIG:
+				LDS R21, S_DMON
+				CPI R21, 0    ; aqui me quede
+				BREQ VER_RST_DEC
+				RJMP deccont1
+
+				VER_RST_DEC:
+					LDS R21, S_UMON
+					CPI R21, 1
+					BREQ RST_TO_DEC
+					RJMP deccont2
+
+					RST_TO_DEC:
+						LDI R21, 1
+						STS S_UDAT, R21
+						LDI R21, 3
+						STS S_DDAT, R21
+						LDI R21, 2
+						STS S_UMON, R21
+						LDI R21, 1
+						STS S_DMON, R21
+						RETI
+
+					deccont2:
+					LDS R21, S_UMON
+					CPI R21, 2			; febrero
+					BREQ RST_MON_31_S
+					CPI R21, 3			; marzo
+					BREQ RST_MON_28_S
+					CPI R21, 4			; abril
+					BREQ RST_MON_31_S
+					CPI R21, 5			; mayo
+					BREQ RST_MON_30_S
+					CPI R21, 6			; junio
+					BREQ RST_MON_31_S
+					CPI R21, 7			; julio
+					BREQ RST_MON_30_S
+					CPI R21, 8			; agosto
+					BREQ RST_MON_31_S
+					CPI R21, 9			; septiembre
+					BREQ RST_MON_31_S
+					RJMP deccont1
+
+					RST_MON_31_S:
+						RJMP RST_31_S
+					RST_MON_30_S:
+						RJMP RST_30_S
+					RST_MON_28_S:
+						RJMP RST_28_S
+
+				deccont1:
+				LDS R21, S_DMON
+				CPI R21, 1
+				BREQ VER_OCTNOVDEC
+				RETI
+				
+				VER_OCTNOVDEC:
+					LDS R21, S_UMON
+					CPI R21, 0			; octubre
+					BREQ RST_MON_30_S
+					CPI R21, 1			; noviembre
+					BREQ RST_MON_31_S
+					CPI R21, 2			; diciembre
+					BREQ RST_MON_30_S
+					RETI
+
+				RST_30_S:
+					LDS R21, S_DMON
+					CPI R21, 1
+					BREQ ver_oct
+					RJMP contin1
+
+					ver_oct:
+						LDS R21, S_UMON
+						CPI R21, 0
+						BREQ rst_oct
+						RJMP contin1
+
+						rst_oct:
+							LDI R21, 3
+							STS S_DDAT, R21
+							LDI R21, 0
+							STS S_UDAT, R21
+							LDI R21, 9
+							STS S_UMON, R21
+							LDI R21, 0
+							STS S_DMON, R21
+							RETI
+
+					contin1:
+					LDS R21, S_UMON
+					DEC R21
+					STS S_UMON, R21
+					RETI
+
+				RST_31_S:
+					LDI R21, 3
+					STS S_DDAT, R21
+					LDI R21, 0
+					STS S_UDAT, R21
+					
+					LDS R21, S_UMON
+					DEC R21
+					STS S_UMON, R21
+					RETI
+
+				RST_28_S:
+					LDI R21, 2
+					STS S_DDAT, R21
+					LDI R21, 8
+					STS S_UDAT, R21
+					LDI R21, 0
+					STS S_DMON, R21
+					LDI R21, 2
+					STS S_UMON, R21
+					RETI
+					
+					
+
+
+		;----Para decrementar alarma----
+		alarm_cont2:
+		CPI R19, 4
+		BREQ DEC_ALARM
+		RETI
+
+		DEC_ALARM:
+			LDS R21, UMALARM
+			CPI R21, 0x00
+			BREQ RST_UMIN_DEC_ALM
+			
+			LDS R21, UMALARM
+			DEC R21
+			STS UMALARM, R21
+			RETI
+
+			RST_UMIN_DEC_ALM:
+				LDI R21, 0x09
+				STS UMALARM, R21
+
+				LDS R21, DMALARM
+				CPI R21, 0x00
+				BREQ RST_DMIN_DEC_ALM
+
+				LDS R21, DMALARM
+				DEC R21
+				STS DMALARM, R21
+				RETI
+
+				RST_DMIN_DEC_ALM:
+					LDI R21, 0x09
+					STS UMALARM, R21
+					LDI R21, 0x05
+					STS DMALARM, R21
+
+					LDS R21, UHALARM
+					CPI R21, 0x00
+					BREQ RST_UHOR_DEC_ALM
+
+					LDS R21, UHALARM
+					DEC R21
+					STS UHALARM, R21
+					RETI
+					
+					RST_UHOR_DEC_ALM:
+						LDI R21, 0x09
+						STS UMALARM, R21
+						LDI R21, 0x05
+						STS DMALARM, R21
+						LDI R21, 0x09
+						STS UHALARM, R21
+
+						LDS R21, DHALARM
+						CPI R21, 0x00
+						BREQ RST_DHOR_DEC_ALM
+
+						LDS R21, DHALARM
+						DEC R21
+						STS DHALARM, R21
+						RETI
+
+						RST_DHOR_DEC_ALM:
+							LDI R21, 0x09
+							STS UMALARM, R21
+							LDI R21, 0x05
+							STS DMALARM, R21
+							LDI R21, 0x03
+							STS UHALARM, R21
+							LDI R21, 0x02
+							STS DHALARM, R21
+							RETI
+
+		RETI
+
+; ==============================================
+; Condicionales para boton que enciende/apaga alarma (PC3)
+; ==============================================
+
+	BUT_ALARM:
+
+		RETI
